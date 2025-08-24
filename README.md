@@ -2,84 +2,83 @@
     imarkdown
 </h1>
 <p align="center">
-  <strong>imarkdown is a lightweight markdown image link converter that allows you to easily convert image links between local and image server, as well as between different image servers.</strong>
+  <strong>imarkdown是一个轻量级markdown图片链接转换器，你可以轻松地对图片链接进行本地到图片服务器、图片服务器到本地、图片服务器到图片服务器的转换。</strong>
 </p>
 
-[English](/README.md) [中文](/README_zh.md)
 
-> When converting markdown from Yuque, the images are protected against external linking. If you want to publish the converted markdown on other platforms, you need to change all the image addresses in the markdown to local image addresses or custom image server addresses, so that others can view them correctly. This project aims to solve this problem by providing a converter that can batch convert image links in markdown and supports customized conversion in complex scenarios.
+> 因为语雀转markdown的时候图片存在防外链行为，如果想要把转出的markdown发表在其他平台，就需要把markdown中所有的图片地址改成本地图片地址或者自定义的图片服务器地址，才可以让别人正常查看。该项目旨在解决这个问题，提供了一个可以批量转换markdown中的图片链接转换器，并支持一些复杂场景下的定制化转换功能。
 
-## Features
+## 功能
 
-- Batch Download: imarkdown can batch download all the images in the markdown that are referenced using image links.
-- Multiple Conversion Methods: imarkdown supports various conversion methods for image links in markdown, such as converting to local image, converting web URL to local image, and converting web URL to image server URL.
-- Batch Conversion: It supports batch conversion of single or multiple files, as well as formatting and renaming of generated files.
-- Highly Customizable: By inheriting the `MdAdapter` class, you can easily implement custom URL conversion for different image servers.
-- Image Server Adapters: Currently, only Aliyun OSS is supported as an image server. Contributions are welcome to add support for more types of image servers.
-- Custom recognition format: With ElementFinder, users can customize the search method for elements (such as image addresses) to meet the needs of special element recognition.
+- 批量下载：对于markdown中的图片引用，imarkdown可以批量下载markdown中所有的图片到本地
+- 多种转换方式： 对于markdown中的图片链接，支持本地转图床、web url转本地、web url转图床等多种转换方式
+- 批量转换：支持单、多文件的批量转换，以及生成文件的格式化重命名等操作
+- 高度自定义： 只需要继承一个MdAdapter，就可以轻松实现自定义图床的url转换
+- 图床适配： 当前暂时只支持阿里云图床，欢迎pr提供更多类型图床
+- 自定义识别格式： 通过ElementFinder，用户可以自定义元素（如图片地址）的查找方式，以满足特殊元素识别的需求。
 
-## Target Audience
+## 适用人群
 
-- People who need to batch convert image links in markdown.
-- Users who export markdown from Yuque and need to convert image links.
-- People who need to develop third-party extensions.
+- 有批量转换markdown图片链接url的需求的人
+- 对于语雀导出markdown的用户，需要对图片外链进行转换的人
+- 需要开发第三扩展应用的人
 
-## Technical Architecture
+## 技术架构
 
-`imarkdown` is designed with a modular architecture, allowing easy extension of each component. The following diagram provides a simplified overview of the technical architecture of imarkdown, which consists of the following components:
+`imarkdown`采用模块化设计，对于每一个组件，你都可以方便地进行扩展，下图简单展示了imarkdown的技术架构，imarkdown由以下几个部分组成：
 
-- `MdImageConverter`: The image converter responsible for converting the image addresses in markdown and generating new markdown files.
-- `MdAdapter`: The adapter for converting `Image` objects to different types, such as `LocalFileAdapter` for local conversion, `AliyunAdapter` for Aliyun OSS conversion, and `CustomAdapter` for custom conversion. By injecting the adapter into `MdImageConverter`, you can define the type of address to convert `Image` objects to.
-- `MdMedium`: Includes `MdFile` and `MdFolder`, encapsulating some features used for data conversion in `MdImageConverter`.
+- `MdImageConverter` Image图片转换器，负责转换markdown的图片地址并生成新的markdown文件。
+- `MdAdapter` Md适配器，Image需要转换成的类型，如LocalFileAdapter本地适配器、AliyunAdapter阿里云oss适配器，CustomAdapter自定义适配器，通过将适配器注入MdImageConverter，可以定义将Image转换成什么类型的地址。
+- `MdMedium` 包括MdFile和MdFolder，封装了一些特性，用于传入MdImageConverter进行数据转换。
 
 
 <img src="https://zeeland-bucket.oss-cn-beijing.aliyuncs.com/images/20230713154424.png"/>
 
-The execution process of `imarkdown` is roughly as follows: after the `convert` method is called on `MdImageConverter`, `imarkdown` builds a virtual `MdTree` based on the provided `MdMedium`, and performs batch image URL conversion on the files according to this tree.
+`imarkdown`执行过程大致如下所示，在MdImageConverter执行convert方法后，imarkdown会根据传入的MdMedium构建一个虚拟MdTree，根据此树将文件进行批量图片url转换生成。
 
 <img src="https://zeeland-bucket.oss-cn-beijing.aliyuncs.com/images/20230713155912.png"/>
 
-## Quick Start
+## 快速上手
 
-This project is developed in Python and distributed on PyPI. Users can easily use imarkdown by installing it with pip. The following sections will explain several usage scenarios and methods of imarkdown.
+该项目基于Python进行开发，使用PyPi进行发包，用户可以直接通过pip的方式轻松使用imarkdown。下面将会讲解imarkdown的几种使用场景以及使用方式。
 
-- Third-Party Package Installation: Open a terminal or command prompt and run the following command.
+- 第三方包安装，打开终端命令行，运行如下命令。
 
 ```sh
 pip install -U imarkdown
 ```
 
-**Examples**
-- [Convert Web URLs to Local Addresses](#converting-web-urls-to-local-file-paths)
-- [Convert Web URLs to Image Server URLs](#converting-web-urls-to-image-hosting-service-urls)
-- [Batch Conversion: Web URLs to Local](#batch-conversion-of-multiple-files-web-url-to-local)
-- [Batch Conversion: Local to Image Server](#batch-conversion-of-multiple-files-local-to-image-hosting-service)
-- [Custom Image Hosting Service](#custom-image-hosting-service)
+**示例**
+- [web url转本地地址](#web-url转本地地址)
+- [web-url转图床](#web-url转图床)
+- [多文件转换 web-url转本地](#多文件转换-web-url转本地)
+- [多文件转换 本地转图床](#多文件转换-本地转图床)
+- [自定义图床](#自定义图床)
 
 
-### Converting Web URLs to Local File Paths
+### web url转本地地址
 
-If you have web URL links for images in your Markdown file and you want to download them in bulk to your local machine while converting the image addresses in Markdown to local file paths, the following example will solve your problem.
+如果你的markdown文件里面的图片是其他网站的web url链接，而你想要将其批量下载到本地，并将markdown中的图片地址转换为本地图片地址，下面的示例将会解决你的问题。
 
-Assuming the file you want to convert is `test.md` with the following content:
+假设你需要转换的文件为`test.md`，内容如下：
 
-> The examples below will be based on the initial Markdown file if it is a web URL. They are not repeated here.
+> 下面的示例如果初始markdown文件为web url，则都将基于该文档进行转换，下面不重复给出。 
 
 ```text
-## 6.3 Converting MD Image Addresses
-Only supports uploading to a local image hosting service.
+## 6.3 md图片地址转换
+以下只支持本地传到图床
 
 - [https://github.com/JyHu/useful_script.git](https://github.com/JyHu/useful_script.git)
 - [https://github.com/JyHu/useful_script/blob/](https://github.com/JyHu/useful_script/blob/master/Scripts/md%E6%96%87%E4%BB%B6%E5%9B%BE%E7%89%87%E5%9B%BE%E5%BA%8A%E8%BD%AC%E6%8D%A2/%E8%87%AA%E5%8A%A8%E8%BD%AC%E6%8D%A2markdown%E6%96%87%E4%BB%B6%E4%B8%AD%E5%9B%BE%E7%89%87%E5%88%B0%E5%9B%BE%E5%BA%8A.md/)
 
-After all the hassle and trying this, I found it doesn't work either.
+罢了，折腾了这么久，又试了试这个，发现也不好用。
 ![image.png](https://cdn.nlark.com/yuque/0/2022/png/26910220/1670091709979-52f8c3c4-a00f-4668-a236-29ad2c09d0da.png#averageHue=%23272c34&clientId=ubb991e0d-3414-4&crop=0&crop=0&crop=1&crop=1&from=paste&height=928&id=u4a7a8376&margin=%5Bobject%20Object%5D&name=image.png&originHeight=928&originWidth=1050&originalType=binary&ratio=1&rotation=0&showTitle=false&size=201083&status=done&style=none&taskId=u27493dc0-9d78-4c07-929c-cc946d41409&title=&width=1050)
 
-In the end, PigGo is still the best. It provides a shortcut for uploading, and after uploading, you can directly xxxTODO.
+最后，还是PigGo最香，提供了快捷键上传，上传完之后直接xxxTODO
 
 ## 6.4 Pycasbin
 
-In pycasbin, I saw a colleague who frequently contributes to pycasbin. You can refer to some of his contributions:
+在pycasbin看到一个经常参与pycasbin的同行，可以参考一些他的contribution：
 
 - [https://github.com/Nekotoxin/nekotoxin.github.io/blob/gsoc_2022_summary/GSoC2022-summary.md](https://github.com/Nekotoxin/nekotoxin.github.io/blob/gsoc_2022_summary/GSoC2022-summary.md)
 
@@ -87,7 +86,7 @@ In pycasbin, I saw a colleague who frequently contributes to pycasbin. You can r
 ![image.png](https://cdn.nlark.com/yuque/0/2022/png/26910220/1670150012015-3a93ec6b-bb27-4ed3-b42f-252a0f70b65c.png#averageHue=%23fcfbf5&clientId=u86ce0a81-ec80-4&crop=0&crop=0&crop=1&crop=1&from=paste&height=936&id=ube9c482c&margin=%5Bobject%20Object%5D&name=image.png&originHeight=936&originWidth=1920&originalType=binary&ratio=1&rotation=0&showTitle=false&size=205691&status=done&style=none&taskId=u6a6825da-aaf4-471c-ad0e-2280c325c66&title=&width=1920)
 ```
 
-This content is the exported Markdown file from Yuque, and its image links are protected against external access. They need to be downloaded and replaced with local file paths in the Markdown.
+该内容为本文语雀导出markdown之后的文件，其图片链接为语雀的防外链链接，需要将其图片转换到本地，并替换markdown中的链接。
 
 ```python
 from imarkdown import MdFile, LocalFileAdapter, MdImageConverter
@@ -103,25 +102,25 @@ if __name__ == '__main__':
     main()
 ```
 
-> In imarkdown, there are many places where you need to provide paths. You can use relative paths or absolute paths. It is recommended to use `/` as the path separator instead of `\\`.
+> imarkdown中有许多需要传入路径的地方，你可以传入相对路径或者绝对路径，路径分割符推荐使用`/`而不是`\\`
 
-The converted result will generate a new Markdown file named `test_converted.md`, with the following content:
+转换之后的结果如下，生成一个新的markdown文件，文件名为`test_converted.md`
 
 ```text
-## 6.3 Converting MD Image Addresses
-Only supports uploading to a local image hosting service.
+## 6.3 md图片地址转换
+以下只支持本地传到图床
 
 - [https://github.com/JyHu/useful_script.git](https://github.com/JyHu/useful_script.git)
 - [https://github.com/JyHu/useful_script/blob/](https://github.com/JyHu/useful_script/blob/master/Scripts/md%E6%96%87%E4%BB%B6%E5%9B%BE%E7%89%87%E5%9B%BE%E5%BA%8A%E8%BD%AC%E6%8D%A2/%E8%87%AA%E5%8A%A8%E8%BD%AC%E6%8D%A2markdown%E6%96%87%E4%BB%B6%E4%B8%AD%E5%9B%BE%E7%89%87%E5%88%B0%E5%9B%BE%E5%BA%8A.md/)
 
-After all the hassle and trying this, I found it doesn't work either.
+罢了，折腾了这么久，又试了试这个，发现也不好用。
 ![image.png](./images/20230713_1356451324.png)
 
-In the end, PigGo is still the best. It provides a shortcut for uploading, and after uploading, you can directly xxxTODO.
+最后，还是PigGo最香，提供了快捷键上传，上传完之后直接xxxTODO
 
 ## 6.4 Pycasbin
 
-In pycasbin, I saw a colleague who frequently contributes to pycasbin. You can refer to some of his contributions:
+在pycasbin看到一个经常参与pycasbin的同行，可以参考一些他的contribution：
 
 - [https://github.com/Nekotoxin/nekotoxin.github.io/blob/gsoc_2022_summary/GSoC2022-summary.md](https://github.com/Nekotoxin/nekotoxin.github.io/blob/gsoc_2022_summary/GSoC2022-summary.md)
 
@@ -129,24 +128,25 @@ In pycasbin, I saw a colleague who frequently contributes to pycasbin. You can r
 ![image.png](./images/20230713_1356469646.png)
 ```
 
-- Customizing the Output File Name
-When using imarkdown for conversion, the default name for the converted Markdown file is `{markdown_file_name}_converted.md`. If you want to customize the output file name, you can use the following configuration:
+- 自定义文件名输出
+使用imarkdown进行转换，默认转换后生成的markown文件名为`{markdown_file_name}_converted.md`如果你想要自定义输出的文件名，你可以使用如下方式进行配置。
 
 ```python
 md_converter.convert(md_file, name_prefix="new_", name_suffix="_converted")
 ```
 
-Using this method of conversion will result in a file named `new_test_converted.md`. If you want to completely customize the converted name, you can use the following method:
+使用该方式进行转换，最终输出的文件名为`new_test_converted.md`。如果你想要完全自定义其转换后的名字，可以使用如下方式：
 
 ```python
 md_converter.convert(md_file, new_name="A new markdown.md")
 ```
 
-With the above method, a file named `A new markdown.md` will be generated.
+通过上面的方式，会转换生成一个`A new markdown.md`的文件。
 
-### Converting Web URLs to Image Hosting Service URLs
 
-In the following example, we will use the `test.md` file provided earlier to demonstrate the conversion of image addresses from web URLs to URLs on the Alibaba Cloud OSS server, showcasing the functionality of converting web URLs to image hosting service URLs.
+### web url转图床
+
+下面的示例，我们将使用上面给出的`test.md`进行图片地址的转换，将其web url转换为阿里云oss服务器的url地址，以此展示web url转图床的功能。
 
 ```python
 from imarkdown import MdImageConverter, AliyunAdapter, MdFile
@@ -170,12 +170,12 @@ if __name__ == "__main__":
     main()
 ```
 
-In the example above, `storage_path_prefix` represents the file prefix in the bucket where the image is uploaded to OSS. If you want to store the image in the `/imarkdown` directory, you need to set `storage_path_prefix="/imarkdown"`. The remaining configuration details are specific to Alibaba Cloud OSS, so please fill them in accordingly.
+在上面的示例中，`storage_path_prefix`表示上传到oss之后图片在bucket中的文件前缀，如你想要将图片存储在`/imarkdown`目录下，则需要设置`storage_path_prefix="/imarkdown"`。而其余的配置内容属于aliyun oss相关的配置内容，请自行填写。
 
 
-### Batch Conversion of Multiple Files: Web URL to Local
+### 多文件转换： web url转本地
 
-The following example demonstrates a solution for batch conversion of multiple Markdown files, converting web image URLs to local image addresses.
+下面的示例展示了多markdown文件批量转换，将图片web链接地址转换为本地图片地址，的解决方案。
 
 ```python
 from imarkdown import LocalFileAdapter, MdFolder, MdImageConverter
@@ -184,40 +184,47 @@ def main():
     adapter = LocalFileAdapter()
     converter = MdImageConverter(adapter=adapter)
     
-    # Folder name is "mds"
+    # 文件名为mds
     md_folder = MdFolder(name="mds")
-    # Output files to "converted_mds"
+    # 将文件输出至converted_mds
     converter.convert(md_folder, output_directory="converted_mds")
 ```
 
-Using the above code snippet will create a folder named "converted_mds" where the converted files will be saved. The images will be saved in the `converted_mds/images` directory. If you want to output the images to a specific folder, you can set it as follows:
+使用上面的方式进行输出，将创建一个名为converted_mds的文件，转换后的文件都在保存到此，图片将保存在`converted_mds/images`中，如果你想要输出图片至指定文件，可以按照如下方式设置。
 
 ```python
 md_folder = MdFolder(name="mds", image_directory="mds/my_images")
 ```
 
-### Batch Conversion of Multiple Files: Local to Image Hosting Service
+### 多文件转换： 本地转图床
 
-The following example demonstrates a solution for batch conversion of multiple Markdown files, converting local image addresses to image hosting service URLs.
+下面的示例展示了多markdown文件批量转换，将本地图片地址转换为图床图片地址的解决方案。
 
 ```python
 from imarkdown import LocalFileAdapter, MdFolder, MdImageConverter
 
 def main():
-    adapter = LocalFileAdapter()
+    aliyun_config = {
+        "access_key_id": "key_id",
+        "access_key_secret": "key_secret",
+        "bucket_name": "bucket_name",
+        "place": "bucket_place",
+        "storage_path_prefix": "prefix",
+    }
+    adapter = AliyunAdapter(**aliyun_config)
     converter = MdImageConverter(adapter=adapter)
     
-    # Folder name is "local_mds", images are of local type, and image URLs are saved in "local_mds/images"
+    # 文件名为local_mds，图片为本地类型，图片链接保存在"local_mds/images"
     md_folder = MdFolder(name="local_mds", image_type="local", image_directory="local_mds/images")
-    # Output files to "converted_mds"
+    # 将文件输出至converted_mds
     converter.convert(md_folder, output_directory="converted_mds")
 ```
 
-### Custom Image Hosting Service
+### 自定义图床
 
-The following example demonstrates how to use imarkdown to upload images to a custom file server and retrieve the URL.
+下面的示例展示了如何使用imarkdown上传图片自定义的文件服务器，并获取url。
 
-First, you need to create a custom adapter by inheriting from `BaseMdAdapter` and implementing the `upload` and `get_replaced_url` methods. Then, you can inject the custom adapter into `MdImageConverter`.
+首先，你需要自定义一个适配器，并继承`BaseMdAdapter`；并实现`upload, get_replaced_url`两个方法。然后你就可以将其注入`MdImageConverter`中。
 
 ```python
 import os
@@ -270,11 +277,11 @@ if __name__ == "__main__":
     main()
 ```
 
-### Custom Regular Expression
+### 自定义元素查找器
 
-`imarkdown` uses the regular expression element finder `ReElementFinder` to recognize the URL of an image, the finder currently supports `![](image_url)` and `<img src="image_url"/>` are two types of image URL format recognition. Of course, if your image URL is strange, sometimes the default regular expression for `imarkdown` cannot be recognized.
+`imarkdown`使用正则表达式元素查找器`ReElementFinder`对image的url进行识别，其表达式当前支持`![](image_url)`和`<img src="image_url"/>`两种图片url的格式的识别，当然，如果你的图片url很奇怪，有的时候`imarkdown`默认的正则表达式也无法识别出来。
 
-At this point, you can customize an element finder called `CustomElementFinder`, which can recognize the content you need to recognize through custom regular expressions or other recognition methods, and use it to pass it to MdImageConverter for element replacement. The following example shows how to use a custom `ElementFinder` to identify image links.
+这个时候，你可以自定义一个元素查找器`CustomElementFinder`，通过自定义正则表达式或者其他的识别方式，从而定制化的识别到你需要识别的内容，用于传递给MdImageConverter进行元素替换。下面的示例展示了怎么使用自定义的`ElementFinder`来识别图片链接。
 
 ```python
 import re
@@ -303,49 +310,59 @@ if __name__ == "__main__":
     main()
 ```
 
-In this example, `CustomElementFinder` needs to inherit from `BaseElementFinder` and implement `find_all_elements()` function and implements specific search logic to construct an array of all elements found in the markdown (such as the urls of all images) and return it to `MdImageConverter`.
+在这个示例中，`CustomElementFinder`需要继承`BaseElementFinder`，并且实现`find_all_elements`函数，并实现特定的查找逻辑，将从markdown中找到的所有元素（如所有图片的url）构建成一个数组返回给`MdImageConverter`，用于元素替换。
 
-## Roadmap
+## 开发计划
 
-- [ ] Add client-side support
-- [ ] Support Tencent Cloud, Qiniu Cloud, and other image hosting services
-- [x] Support batch file modification
-- [x] Custom adapters
-- [ ] Support compression of large images
-- [ ] Support command-line interface
-- [x] Support PyPI for simplified operations
-- [ ] Provide file custom naming
-- [ ] Provide custom formatting for image names
+- [ ] 添加客户端支持
+- [ ] 支持腾讯云、七牛云等图床
+- [x] 支持批量文件修改
+- [x] 自定义适配器
+- [ ] 支持大图片压缩
+- [ ] 支持命令行
+- [x] 支持pypi简化操作步骤
+- [ ] 提供文件自定义命名
+- [ ] 提供图片自定义格式化命名方式
+- [ ] 构建PDF转换器
+- [x] 提供markdown其他元素的替换
+- [ ] 接入各种平台的markdown转换
+  - [ ] 语雀
+  - [ ] 飞书
+
 
 ## FAQ
 
-**1. How can I extend to other image hosting services?**
+**1. 如何扩展其他图床?**
 
-If you want to develop support for other image hosting services, all you need to do is implement an adapter similar to `AliyunAdapter` and inject it into `MdImageConverter` when using it. Refer to [Custom Image Hosting Service](#custom-image-hosting-service). That's all you need to do. In fact, I've wrapped it up nicely, so extending it is straightforward.
+如果你想开发其他图床，你唯一需要做的就是实现像`AliyunAdapter`这样的适配器，在使用的时候注入`MdImageConverter`即可，参考[自定义图床](#自定义图床)
+。这就是你所需要做的。实际上，我已经把它包装好了，所以很容易扩展。
 
-**2. Usage of file addresses**
+**2. 文件地址的使用**
 
-In Python, both `/` and `\\` can be used as file path separators. However, there are some differences in their usage.
+在Python中，`/`和`\\`都可以用作文件路径的分隔符。然而，它们在使用上有一些区别。
 
-- `/` (forward slash): In most operating systems, including Windows, Linux, and Mac, `/` is used as the file path separator. Using `/` as the separator can make your code portable across different operating systems. For example:
+- `/`（正斜杠）：在大多数操作系统中（包括Windows，Linux和Mac），`/`被用作文件路径的分隔符。使用`/`作为分隔符可以使代码在不同操作系统上具有可移植性。例如：
 
 ```python
 path = "folder/file.txt"
 ```
 
-- `\\` (backslash): In the Windows operating system, `\\` is used as the file path separator. This is because `\` is used as an escape character in Windows, so to represent a plain backslash, you need to use two consecutive backslashes. For example:
+- `\\`（反斜杠）：在Windows操作系统中，`\\`被用作文件路径的分隔符。这是因为在Windows上，`\`
+  被用作转义字符，所以为了表示一个普通的反斜杠，需要使用两个连续的反斜杠。例如：
 
 ```python
 path = "folder\\file.txt"
 ```
 
-When using `\\` as the separator, keep the following points in mind:
+在使用`\\`作为分隔符时，需要注意以下几点：
 
-- When using `\\` in a string, you need to escape it as `\\\\` because the first `\` will be interpreted as an escape character.
-- You can use raw strings to avoid the hassle of escaping. In a raw string, `\` is not interpreted as an escape character. For example: `path = r"folder\file.txt"`
+- 在字符串中使用`\\`时，需要转义成`\\\\`，因为第一个`\`会被解释为转义字符。
+- 可以使用原始字符串（raw string）来避免转义的麻烦。在原始字符串中，`\`不会被解释为转义字符。例如：`path = r"folder\file.txt"`
 
-In summary, if your code needs to run on different operating systems, it is recommended to use `/` as the file path separator to maintain code portability. If you are only running the code on Windows, using `\\` is also acceptable. However, in `imarkdown`, all `\\` paths will be converted to `/`. In this project, all `\\` paths will be converted to `/`.
+总结起来，如果你的代码需要在不同的操作系统上运行，建议使用`/`
+作为文件路径的分隔符，这样可以保持代码的可移植性。如果你只在Windows上运行代码，使用`\\`也是可以的。但是，在`imarkdown`
+中，所有的`\\`都会被转换为`/`。在本项目中，所有的`\\`路径最后都会被转换为`/`。
 
-## Contribution
+## 贡献
 
-Contributions are welcome! If you would like to contribute to this project, you can submit a pull request or an issue. There are some extensible features listed in the [Development Roadmap](#development-roadmap), and there are still many third-party image hosting services that need to be adapted. If you are working on these aspects, feel free to submit a pull request! I'm excited to see more people involved in improving and optimizing it.
+欢迎PRs！如果你想为这个项目做贡献，你可以提交pr或issue，[开发计划](#开发计划)中有一些可以扩展的功能，当前还有很多第三方图床需要适配，如果你在做这方面的工作，欢迎pr！我很高兴看到更多的人参与改进并优化它。
