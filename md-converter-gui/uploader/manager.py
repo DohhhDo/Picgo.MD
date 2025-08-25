@@ -52,6 +52,14 @@ class UploadManager:
             return AliOssAdapter(**cfg)
         return None
 
+    # 供“手动上传”按钮使用：忽略是否启用开关，只要配置存在即可返回适配器
+    def get_adapter(self):
+        provider = self.settings.value("imgbed/provider", "")
+        if provider == "aliyun_oss":
+            cfg = self._load_aliyun_config()
+            return AliOssAdapter(**cfg)
+        return None
+
 
 
 

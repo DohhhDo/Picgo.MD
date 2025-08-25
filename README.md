@@ -44,6 +44,46 @@
 - 转换完成后，新的 `.webp` 路径会被自动回写到编辑器中的 Markdown。
 - 生成的图片默认保存在当前目录下的 `images/` 中。
 
+### 代码结构（已模块化）
+```text
+md-converter-gui/
+  core/                    # 转换核心（下载→WebP→回写）
+  uploader/                # 图床适配与管理器（Aliyun 示例）
+  ui/
+    components/            # 复用组件（编辑器、右侧面板）
+    dialogs/               # 对话框（图床设置）
+    themes/                # 深/浅色 tokens
+    workers.py             # ConversionWorker / UploadWorker（后台线程）
+    win11_design.py        # 主窗口与布局（仅保留主逻辑）
+```
+
+### 当前状态与稳定化计划
+- 项目进入“稳定化梳理”阶段，目标是先跑通主流程、再逐步完善。
+- 已实现：
+  - 外链图片“下载→本地 WebP→Markdown 回写”。
+  - 异步上传基础设施（UploadWorker + Aliyun 示例适配/配置持久化）。
+  - Win11 风格 UI、深/浅色 tokens、右侧质量与进度显示。
+- 主要阻断（启动时报错多与缩进/残留旧代码有关）：
+  - `win11_design.py` 的 `apply_theme` 深色分支缩进需完全归位到 `if dark:` 内。
+  - 已迁移的组件/对话框在 `win11_design.py` 内的旧定义需彻底移除，仅保留导入。
+- 稳定化待办（验收顺序）：
+  1) 修复 `apply_theme` 深色分支缩进与样式套用。
+  2) 清除 `win11_design.py` 中已迁移的组件/对话框类定义。
+  3) 统一导入：从 `components/`、`dialogs/`、`themes/`、`workers` 导入并通过。
+  4) 启动烟测：应用能无异常进入主界面。
+  5) 转换验证：远程图片下载→本地 WebP→编辑器回写。
+  6) 上传验证：UploadWorker 异步上传并回写外链（阿里云）。
+  7) 主题样式一致性：深/浅色、状态栏、分割线、按钮。
+
+### 用户验证清单（建议按此顺序）
+1. 打开应用能正常进入主界面，无报错。
+2. 粘贴含 http(s) 图片链接的 Markdown，点击“转换”后：
+   - `images/` 目录出现 `.webp` 文件；
+   - 编辑器内的图片链接回写为相对路径 `images/xxx.webp`。
+3. 打开“图床设置”，填写阿里云 OSS 凭据，保存；勾选“启用转换后自动上传”。
+4. 再次“转换”，状态栏看到上传进度；编辑器内回写为外链 URL。
+5. 浅色/深色主题下控件样式、分割线、状态栏与按钮可读性良好。
+
 ---
 
 ### 使用方法（脚本/二次开发）
@@ -84,11 +124,14 @@ print(count, stats)
 
 ---
 
-### 图床绑定（自定义适配器）
-项目内置对“自定义图床”模式的支持：你可以实现一个适配器来完成上传逻辑，并在转换完成后将 `.webp` 上传到你的图床，返回图床 URL 并回写到 Markdown。
+### 图床绑定（当前实现与扩展）
+GUI 已具备“转换完成→后台上传→回写外链”的基础流程，现阶段优先支持阿里云 OSS：
+- 在“图床设置”填写 endpoint/bucket/AK/SK 并保存；可选择“启用转换后自动上传”。
+- 转换完成后由 UploadWorker 异步上传，状态栏显示进度，成功后编辑器回写外链 URL。
 
-- 方式一：参考 `imarkdown` 的适配器机制（如阿里云 OSS）。示例可见仓库 `example/aliyun_oss_usage.py`。
-- 方式二：自定义适配器。示意代码（伪示例）：
+你也可以按适配器模式扩展更多图床：
+- 方式一：沿用 `imarkdown` 适配器机制（如阿里云 OSS）。
+- 方式二：自定义适配器（伪示例）：
 
 ```python
 # 伪代码示例：自定义图床上传（可参考 example/custom_adapter.py 与 imd-README.md 中的示例）
@@ -98,11 +141,10 @@ class MyImageBedAdapter:
         # 返回图床上的可访问 URL
         ...
 
-# 在转换完每张图片后，调用 adapter.upload(webp_path)，
-# 并把返回的 URL 写回 Markdown（替换本地 images/xxx.webp）。
+# 在转换完每张图片后，调用 adapter.upload(webp_path)，再把返回的 URL 写回 Markdown。
 ```
 
-> 说明：当前 GUI 侧已具备转换与回写能力；图床绑定能力已具备适配器示例与基础设施，后续将把“图床配置与上传流程”集成到 GUI 中，提供可视化设置。
+> 说明：图床上传在 GUI 中已可用（阿里云示例），其他图床按适配器扩展即可。
 
 ---
 

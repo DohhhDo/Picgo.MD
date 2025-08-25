@@ -10,8 +10,7 @@ from PyQt6.QtWidgets import (
     QSplitter, QLabel, QPushButton, QSlider, QGridLayout, 
     QFrame, QTextEdit, QFileDialog, QMessageBox, QToolButton,
     QSizePolicy, QApplication, QGraphicsDropShadowEffect, QToolBar,
-    QDialog, QTabWidget, QComboBox, QLineEdit, QCheckBox, QDialogButtonBox,
-    QScrollArea
+    QDialog, QTabWidget, QComboBox, QLineEdit, QCheckBox, QDialogButtonBox, QScrollArea
 )
 from PyQt6.QtCore import Qt, QTimer, QSize, pyqtSignal, QSettings, QRect, QPoint, QPropertyAnimation, QEasingCurve
 from PyQt6.QtGui import QFont, QAction, QPalette, QColor, QPixmap, QPainter, QScreen, QCursor, QIcon
@@ -31,6 +30,13 @@ except ImportError:
     convert_markdown_images = None
 
 from .utils import detect_system_theme_default_dark, format_size_human
+from .workers import ConversionWorker, UploadWorker
+from .components.markdown_editor import Win11MarkdownEditor
+from .components.control_panel import Win11ControlPanel
+from .dialogs.image_bed_dialog import ImageBedDialog
+from .themes.tokens import DARK_TOKENS, LIGHT_TOKENS
+from .components.markdown_editor import Win11MarkdownEditor
+from .components.control_panel import Win11ControlPanel
 
 # FontAwesome 图标支持（qtawesome）
 try:
@@ -41,106 +47,7 @@ except Exception:
 from .workers import ConversionWorker, UploadWorker
 
 
-class Win11MarkdownEditor(QTextEdit):
-    """Win11风格的Markdown编辑器"""
-    def __init__(self):
-        super().__init__()
-        self.setup_ui()
-    
-    def setup_ui(self):
-        # 设置Win11推荐字体
-        font = QFont("Segoe UI", 11)
-        self.setFont(font)
-        
-        # 检测系统主题
-        self.is_dark_theme = self.detect_system_theme()
-        
-        # 应用主题样式
-        self.apply_theme_style()
-        
-        # 设置占位符文本
-        self.setPlaceholderText("在此编辑Markdown内容...")
-    
-    def detect_system_theme(self):
-        """检测系统是否为深色主题"""
-        try:
-            import winreg
-            registry = winreg.ConnectRegistry(None, winreg.HKEY_CURRENT_USER)
-            key = winreg.OpenKey(registry, r"SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize")
-            value, _ = winreg.QueryValueEx(key, "AppsUseLightTheme")
-            winreg.CloseKey(key)
-            return value == 0  # 0表示深色主题，1表示浅色主题
-        except:
-            return False  # 默认浅色主题
-    
-    def apply_theme_style(self):
-        """应用主题样式"""
-        if self.is_dark_theme:
-            # 深色主题样式
-            self.setStyleSheet("""
-                QTextEdit {
-                    background-color: #1e1e1e;
-                    color: #ffffff;
-                    border: 1px solid #3f3f3f;
-                    border-radius: 4px;
-                    padding: 12px;
-                    line-height: 1.4;
-                    selection-background-color: #0078d4;
-                    selection-color: #ffffff;
-                    font-family: 'Segoe UI';
-                }
-                QScrollBar:vertical {
-                    background: transparent;
-                    width: 12px;
-                    border: none;
-                }
-                QScrollBar::handle:vertical {
-                    background: #606060;
-                    border-radius: 6px;
-                    min-height: 20px;
-                    margin: 2px;
-                }
-                QScrollBar::handle:vertical:hover {
-                    background: #808080;
-                }
-                QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
-                    border: none;
-                    background: none;
-                }
-            """)
-        else:
-            # 浅色主题样式
-            self.setStyleSheet("""
-                QTextEdit {
-                    background-color: #ffffff;
-                    color: #000000;
-                    border: 1px solid #8a8886;
-                    border-radius: 4px;
-                    padding: 12px;
-                    line-height: 1.4;
-                    selection-background-color: #0078d4;
-                    selection-color: #ffffff;
-                    font-family: 'Segoe UI';
-                }
-                QScrollBar:vertical {
-                    background: transparent;
-                    width: 12px;
-                    border: none;
-                }
-                QScrollBar::handle:vertical {
-                    background: #606060;
-                    border-radius: 6px;
-                    min-height: 20px;
-                    margin: 2px;
-                }
-                QScrollBar::handle:vertical:hover {
-                    background: #808080;
-                }
-                QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
-                    border: none;
-                    background: none;
-                }
-            """)
+# 已迁移到 ui/components/markdown_editor.py
 
 class Win11ControlPanel(QWidget):
     """Win11风格的控制面板"""
@@ -197,6 +104,26 @@ class Win11ControlPanel(QWidget):
         """)
         main_layout.addWidget(self.convert_btn)
         
+        # 上传按钮（与转换分步）
+        self.upload_btn = QPushButton("上传")
+        self.upload_btn.setFixedHeight(40)
+        self.upload_btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self.upload_btn.setStyleSheet("""
+            QPushButton {
+                background: transparent;
+                color: #0f766e;
+                border: 1.5px solid #0f766e;
+                border-radius: 8px;
+                font-size: 14px;
+                font-family: 'Microsoft YaHei';
+                font-weight: 600;
+                padding: 6px 12px;
+            }
+            QPushButton:hover { background-color: #ecfeff; }
+            QPushButton:pressed { background-color: #cffafe; }
+        """)
+        main_layout.addWidget(self.upload_btn)
+        
         # 图片质量设置卡片
         quality_card = self.create_quality_card()
         main_layout.addWidget(quality_card)
@@ -231,6 +158,22 @@ class Win11ControlPanel(QWidget):
             QPushButton:hover {{ background-color: {tokens['primary_hover']}; border-color: {tokens['primary_hover']}; }}
             QPushButton:pressed {{ background-color: {tokens['primary_press']}; border-color: {tokens['primary_press']}; }}
         """)
+        # 上传按钮（次要描边款）
+        if hasattr(self, 'upload_btn'):
+            self.upload_btn.setStyleSheet(f"""
+                QPushButton {{
+                    background: transparent;
+                    color: {tokens['text']};
+                    border: 1px solid {tokens['border']};
+                    border-radius: 6px;
+                    font-size: 14px;
+                    font-family: 'Microsoft YaHei';
+                    font-weight: 600;
+                    padding: 6px 12px;
+                }}
+                QPushButton:hover {{ background-color: {tokens['chip_hover_bg']}; border-color: {tokens['chip_border']}; }}
+                QPushButton:pressed {{ background-color: {tokens['chip_pressed_bg']}; border-color: {tokens['chip_border']}; }}
+            """)
 
         # 质量百分比徽标
         self.quality_label.setStyleSheet(f"""
@@ -883,6 +826,7 @@ class Win11MainWindow(QMainWindow):
     """Win11风格主窗口"""
     def __init__(self):
         super().__init__()
+        self._debug_ui = True
         self.current_file = None
         self.settings = QSettings("MdImgConverter", "Settings")
         self.setup_ui()
@@ -947,8 +891,18 @@ class Win11MainWindow(QMainWindow):
         
         main_container.setLayout(container_layout)
         
-        # 连接信号
+        # 连接信号（显式断开后再连接，避免重复/混乱）
+        try:
+            self.control_panel.convert_btn.clicked.disconnect()
+        except Exception:
+            pass
         self.control_panel.convert_btn.clicked.connect(self.on_convert_clicked)
+        if hasattr(self.control_panel, 'upload_btn'):
+            try:
+                self.control_panel.upload_btn.clicked.disconnect()
+            except Exception:
+                pass
+            self.control_panel.upload_btn.clicked.connect(self.on_upload_clicked)
         
         # 跟随系统主题（不提供手动切换）
         self.current_theme_dark = self.detect_system_theme()
@@ -982,10 +936,10 @@ class Win11MainWindow(QMainWindow):
             }
             # 深色
             self.setStyleSheet("""
-                    QMainWindow { background-color: #0f172a; }
-                    QMenuBar { background-color: #111827; color: #e5e7eb; border: none; }
-                    QMenuBar::item:selected { background-color: #1f2937; }
-                """)
+                        QMainWindow { background-color: #0f172a; }
+                        QMenuBar { background-color: #111827; color: #e5e7eb; border: none; }
+                        QMenuBar::item:selected { background-color: #1f2937; }
+                    """)
             # 编辑器深色
             self.editor.is_dark_theme = True
             self.editor.apply_theme_style()
@@ -1163,6 +1117,10 @@ class Win11MainWindow(QMainWindow):
         start_btn.setFixedWidth(128)
         # 样式由 tokens 注入
         self.hero_start_btn = start_btn
+        try:
+            start_btn.clicked.disconnect()
+        except Exception:
+            pass
         start_btn.clicked.connect(self.on_convert_clicked)
 
         layout.addWidget(text_block, 1)
@@ -1258,7 +1216,177 @@ class Win11MainWindow(QMainWindow):
     def on_convert_clicked(self):
         """开始转换（供 Hero 按钮/右侧按钮调用）"""
         self.status_label.setText("正在转换...")
-        self.real_conversion()
+        if getattr(self, '_debug_ui', False):
+            try:
+                QMessageBox.information(self, "DEBUG", "on_convert_clicked")
+            except Exception:
+                pass
+        try:
+            self.real_conversion()
+        except Exception as e:
+            try:
+                import traceback
+                QMessageBox.critical(self, "real_conversion 异常", traceback.format_exc())
+            except Exception:
+                pass
+
+    def on_upload_clicked(self):
+        """手动上传：把 images 下的 webp 上传并回写远程 URL"""
+        try:
+            base_dir = os.path.dirname(self.current_file) if getattr(self, 'current_file', None) else os.getcwd()
+            img_dir = os.path.join(base_dir, "images")
+            if not os.path.isdir(img_dir):
+                QMessageBox.information(self, "提示", "未找到 images 目录，请先执行转换。")
+                return
+            local_webps = [os.path.join(img_dir, n) for n in os.listdir(img_dir) if n.lower().endswith('.webp')]
+            if not local_webps:
+                QMessageBox.information(self, "提示", "没有可上传的 WebP 文件。")
+                return
+            self.status_label.setText("正在上传...")
+            self.upload_worker = UploadWorker(base_dir, local_webps)
+            self.upload_worker.progress_updated.connect(self.on_conversion_progress)
+            def _on_uploaded(mapping: dict):
+                md = self.editor.toPlainText()
+                new_md = self._replace_local_paths_with_remote(md, base_dir, mapping)
+                self.editor.setPlainText(new_md)
+                self.status_label.setText("上传完成")
+                QMessageBox.information(self, "上传完成", "已将本地图片链接替换为远程 URL")
+            self.upload_worker.finished_with_mapping.connect(_on_uploaded)
+            self.upload_worker.error.connect(lambda e: QMessageBox.critical(self, "上传失败", e))
+            self.upload_worker.start()
+        except Exception as e:
+            QMessageBox.critical(self, "上传失败", str(e))
+
+    # === 内置一份转换实现，确保方法存在于类上（避免外部重复定义导致找不到） ===
+    def real_conversion(self):
+        """真正的图片转换过程（类内实现）"""
+        markdown_text = self.editor.toPlainText().strip()
+        try:
+            print("[GUI] real_conversion(cls): text_len=", len(markdown_text), flush=True)
+        except Exception:
+            pass
+        if not markdown_text:
+            QMessageBox.information(self, "提示", "请先输入Markdown内容")
+            self.status_label.setText("就绪")
+            return
+
+        # 预检图片链接
+        try:
+            import re as _re
+            pattern = r'(?:!\[.*?\]\((.*?)\))|(?:<img.*?src=["\']([^"\']*)["\'].*?>)'
+            matches = _re.findall(pattern, markdown_text)
+            urls = []
+            for m in matches:
+                u = m[0] or m[1]
+                if u and u.strip():
+                    urls.append(u.strip())
+            if not urls:
+                self.control_panel.convert_btn.setEnabled(True)
+                self.control_panel.convert_btn.setText("转换")
+                self.control_panel.set_progress(0)
+                self.status_label.setText("未找到图片链接")
+                QMessageBox.information(self, "未找到图片", "未检测到 Markdown 中的图片链接，请确认语法：\n\n![](http://...) 或 <img src=\"...\">")
+                return
+        except Exception:
+            pass
+
+        # 目录 / 质量
+        base_dir = os.path.dirname(self.current_file) if getattr(self, 'current_file', None) else os.getcwd()
+        output_dir = os.path.join(base_dir, "images")
+        quality = getattr(self.control_panel, 'quality_value', 73)
+
+        # 重置统计与UI
+        if hasattr(self.control_panel, 'reset_compression_stats'):
+            self.control_panel.reset_compression_stats()
+        self.control_panel.convert_btn.setEnabled(False)
+        self.control_panel.convert_btn.setText("转换中...")
+
+        # 线程执行
+        self.conversion_worker = ConversionWorker(markdown_text, output_dir, quality)
+        self.conversion_worker.progress_updated.connect(self.on_conversion_progress)
+        self.conversion_worker.conversion_finished.connect(self.on_conversion_finished)
+        self.conversion_worker.conversion_error.connect(self.on_conversion_error)
+        self.conversion_worker.start()
+
+        # 看门狗
+        try:
+            if hasattr(self, 'conversion_watchdog') and self.conversion_watchdog is not None:
+                self.conversion_watchdog.stop()
+        except Exception:
+            pass
+        self.conversion_watchdog = QTimer(self)
+        self.conversion_watchdog.setSingleShot(True)
+        self.conversion_watchdog.timeout.connect(self.on_conversion_timeout)
+        self.conversion_watchdog.start(45000)
+
+    def on_conversion_progress(self, progress, message):
+        self.control_panel.set_progress(progress)
+        self.status_label.setText(message)
+        try:
+            if hasattr(self, 'conversion_watchdog') and self.conversion_watchdog is not None:
+                self.conversion_watchdog.start(45000)
+        except Exception:
+            pass
+
+    def on_conversion_finished(self, new_markdown, count, stats):
+        try:
+            if hasattr(self, 'conversion_watchdog') and self.conversion_watchdog is not None:
+                self.conversion_watchdog.stop()
+        except Exception:
+            pass
+        self.editor.setPlainText(new_markdown)
+        if hasattr(self.control_panel, 'update_compression_stats'):
+            self.control_panel.update_compression_stats(stats)
+        self.control_panel.convert_btn.setEnabled(True)
+        self.control_panel.convert_btn.setText("转换")
+        self.control_panel.set_progress(0)
+        self.status_label.setText(f"转换完成！成功转换 {count} 张图片")
+
+        from .utils import format_size_human as format_size
+        original_size = stats.get('total_original_size', 0)
+        saved_size = stats.get('size_saved', 0)
+        compression_ratio = stats.get('compression_ratio', 0)
+        if count <= 0 and original_size == 0:
+            QMessageBox.information(self, "未找到图片", "未检测到 Markdown 中的图片链接，请确认语法：\n\n![](http://...) 或 <img src=\"...\">")
+        else:
+            msg = f"成功转换 {count} 张图片为WebP格式！\n\n"
+            if original_size > 0:
+                msg += f"原始大小: {format_size(original_size)}\n"
+                msg += f"节省空间: {format_size(saved_size)}\n"
+                msg += f"压缩比例: {compression_ratio:.1f}%\n\n"
+            msg += "图片已保存到 images 目录。"
+            QMessageBox.information(self, "转换完成", msg)
+
+    def on_conversion_error(self, error_message):
+        try:
+            if hasattr(self, 'conversion_watchdog') and self.conversion_watchdog is not None:
+                self.conversion_watchdog.stop()
+        except Exception:
+            pass
+        self.control_panel.convert_btn.setEnabled(True)
+        self.control_panel.convert_btn.setText("转换")
+        self.control_panel.set_progress(0)
+        self.status_label.setText("转换失败")
+        QMessageBox.critical(self, "转换失败", error_message)
+
+    def on_conversion_timeout(self):
+        try:
+            self.control_panel.convert_btn.setEnabled(True)
+            self.control_panel.convert_btn.setText("转换")
+            self.status_label.setText("转换超时，请检查网络或图片链接")
+            QMessageBox.warning(self, "转换超时", "转换耗时过长，可能网络较慢或图片地址不可达。稍后重试，或检查图片 URL。")
+        except Exception:
+            pass
+
+    def _replace_local_paths_with_remote(self, md: str, base_dir: str, mapping: dict) -> str:
+        def rel(p: str) -> tuple[str, str]:
+            rp = os.path.relpath(p, base_dir).replace('\\','/')
+            rp2 = './' + rp if not rp.startswith('./') else rp
+            return rp, rp2
+        for lp, url in mapping.items():
+            r1, r2 = rel(lp)
+            md = md.replace(r1, url).replace(r2, url)
+        return md
     
     def restore_window_state(self):
         """恢复窗口状态"""
@@ -1542,12 +1670,42 @@ class ImageBedDialog(QDialog):
         """真正的图片转换过程"""
         # 获取Markdown文本
         markdown_text = self.editor.toPlainText().strip()
+        if getattr(self, '_debug_ui', False):
+            try:
+                QMessageBox.information(self, "DEBUG", "enter real_conversion")
+            except Exception:
+                pass
+        try:
+            print("[GUI] real_conversion: text_len=", len(markdown_text), flush=True)
+        except Exception:
+            pass
         
         if not markdown_text:
             QMessageBox.information(self, "提示", "请先输入Markdown内容")
             self.status_label.setText("就绪")
             return
         
+        # UI 侧先行快速校验是否含有图片链接，避免无感卡住
+        try:
+            import re as _re
+            _pattern = r'(?:!\[.*?\]\((.*?)\))|(?:<img.*?src=["\']([^"\']*)["\'].*?>)'
+            _matches = _re.findall(_pattern, markdown_text)
+            _urls = []
+            for _m in _matches:
+                _u = _m[0] or _m[1]
+                if _u and _u.strip():
+                    _urls.append(_u.strip())
+            print(f"[GUI] precheck image urls: {len(_urls)}", flush=True)
+            if not _urls:
+                self.control_panel.convert_btn.setEnabled(True)
+                self.control_panel.convert_btn.setText("转换")
+                self.control_panel.set_progress(0)
+                self.status_label.setText("未找到图片链接")
+                QMessageBox.information(self, "未找到图片", "未检测到 Markdown 中的图片链接，请确认语法：\n\n![](http://...) 或 <img src=\"...\">")
+                return
+        except Exception:
+            pass
+
         # 获取当前文件目录，如果没有文件则使用当前目录
         if hasattr(self, 'current_file') and self.current_file:
             base_dir = os.path.dirname(self.current_file)
@@ -1556,6 +1714,10 @@ class ImageBedDialog(QDialog):
         
         # 创建images目录
         output_dir = os.path.join(base_dir, "images")
+        try:
+            print("[GUI] base_dir=", base_dir, " output_dir=", output_dir, flush=True)
+        except Exception:
+            pass
         
         # 获取质量设置
         quality = self.control_panel.quality_value
@@ -1572,15 +1734,49 @@ class ImageBedDialog(QDialog):
         self.conversion_worker.progress_updated.connect(self.on_conversion_progress)
         self.conversion_worker.conversion_finished.connect(self.on_conversion_finished)
         self.conversion_worker.conversion_error.connect(self.on_conversion_error)
+        try:
+            print("[GUI] starting ConversionWorker...", flush=True)
+        except Exception:
+            pass
         self.conversion_worker.start()
+
+        # 启动看门狗，防止长时间无响应（如网络卡住）
+        try:
+            if hasattr(self, 'conversion_watchdog') and self.conversion_watchdog is not None:
+                self.conversion_watchdog.stop()
+        except Exception:
+            pass
+        self.conversion_watchdog = QTimer(self)
+        self.conversion_watchdog.setSingleShot(True)
+        self.conversion_watchdog.timeout.connect(self.on_conversion_timeout)
+        self.conversion_watchdog.start(45000)  # 45s 超时提示
     
     def on_conversion_progress(self, progress, message):
         """转换进度更新"""
         self.control_panel.set_progress(progress)
         self.status_label.setText(message)
+        try:
+            print(f"[GUI] progress: {progress}%  {message}", flush=True)
+        except Exception:
+            pass
+        # 刷新看门狗
+        try:
+            if hasattr(self, 'conversion_watchdog') and self.conversion_watchdog is not None:
+                self.conversion_watchdog.start(45000)
+        except Exception:
+            pass
     
     def on_conversion_finished(self, new_markdown, count, stats):
         """转换完成"""
+        try:
+            if hasattr(self, 'conversion_watchdog') and self.conversion_watchdog is not None:
+                self.conversion_watchdog.stop()
+        except Exception:
+            pass
+        try:
+            print(f"[GUI] finished: count={count} stats={stats}", flush=True)
+        except Exception:
+            pass
         # 更新编辑器内容（先显示转换结果，不阻塞）
         self.editor.setPlainText(new_markdown)
         
@@ -1593,30 +1789,7 @@ class ImageBedDialog(QDialog):
         self.control_panel.set_progress(0)
         self.status_label.setText(f"转换完成！成功转换 {count} 张图片")
 
-        # 后台开始上传（不阻塞 UI）
-        try:
-            settings = QSettings("MdImgConverter", "Settings")
-            if settings.value("imgbed/enabled", False, type=bool) and settings.value("imgbed/provider", "") == "aliyun_oss":
-                base_dir = os.path.dirname(self.current_file) if getattr(self, 'current_file', None) else os.getcwd()
-                img_dir = os.path.join(base_dir, "images")
-                local_webps = []
-                if os.path.isdir(img_dir):
-                    for name in os.listdir(img_dir):
-                        if name.lower().endswith('.webp'):
-                            local_webps.append(os.path.join(img_dir, name))
-                if local_webps:
-                    self.upload_worker = UploadWorker(base_dir, local_webps)
-                    self.upload_worker.progress_updated.connect(self.on_conversion_progress)
-                    def _on_uploaded(mapping: dict):
-                        md = self.editor.toPlainText()
-                        new_md = self._replace_local_paths_with_remote(md, base_dir, mapping)
-                        self.editor.setPlainText(new_md)
-                        self.status_label.setText("上传完成")
-                    self.upload_worker.finished_with_mapping.connect(_on_uploaded)
-                    self.upload_worker.error.connect(lambda e: self.status_label.setText(f"上传失败: {e}"))
-                    self.upload_worker.start()
-        except Exception:
-            pass
+        # 不再自动上传，改为显式“上传”按钮触发
         
         # 格式化统计信息用于显示
         from .utils import format_size_human as format_size
@@ -1625,18 +1798,33 @@ class ImageBedDialog(QDialog):
         saved_size = stats.get('size_saved', 0)
         compression_ratio = stats.get('compression_ratio', 0)
         
-        # 显示完成消息，包含压缩统计
-        message = f"成功转换 {count} 张图片为WebP格式！\n\n"
-        if original_size > 0:
-            message += f"原始大小: {format_size(original_size)}\n"
-            message += f"节省空间: {format_size(saved_size)}\n"
-            message += f"压缩比例: {compression_ratio:.1f}%\n\n"
-        message += "图片已保存到 images 目录。"
-        
-        QMessageBox.information(self, "转换完成", message)
+        # 弹窗提示：区分未找到图片与成功转换
+        if count <= 0 and stats.get('total_original_size', 0) == 0:
+            QMessageBox.information(
+                self,
+                "未找到图片",
+                "未检测到 Markdown 中的图片链接，请确认语法：\n\n![](http://...) 或 <img src=\"...\">",
+            )
+        else:
+            message = f"成功转换 {count} 张图片为WebP格式！\n\n"
+            if original_size > 0:
+                message += f"原始大小: {format_size(original_size)}\n"
+                message += f"节省空间: {format_size(saved_size)}\n"
+                message += f"压缩比例: {compression_ratio:.1f}%\n\n"
+            message += "图片已保存到 images 目录。"
+            QMessageBox.information(self, "转换完成", message)
     
     def on_conversion_error(self, error_message):
         """转换错误"""
+        try:
+            if hasattr(self, 'conversion_watchdog') and self.conversion_watchdog is not None:
+                self.conversion_watchdog.stop()
+        except Exception:
+            pass
+        try:
+            print(f"[GUI] error: {error_message}", flush=True)
+        except Exception:
+            pass
         # 重置UI状态
         self.control_panel.convert_btn.setEnabled(True)
         self.control_panel.convert_btn.setText("转换")
@@ -1645,6 +1833,34 @@ class ImageBedDialog(QDialog):
         
         # 显示错误消息
         QMessageBox.critical(self, "转换失败", error_message)
+
+    def on_conversion_timeout(self):
+        """转换超时提示（不强杀线程，仅提示并恢复按钮）"""
+        try:
+            print("[GUI] timeout", flush=True)
+            self.control_panel.convert_btn.setEnabled(True)
+            self.control_panel.convert_btn.setText("转换")
+            self.status_label.setText("转换超时，请检查网络或图片链接")
+            QMessageBox.warning(self, "转换超时", "转换耗时过长，可能网络较慢或图片地址不可达。稍后重试，或检查图片 URL。")
+        except Exception:
+            pass
+
+# 兼容性修复：将下方（意外置于类外的）方法绑定回 Win11MainWindow
+try:
+    if not hasattr(Win11MainWindow, 'real_conversion') and 'real_conversion' in globals():
+        Win11MainWindow.real_conversion = globals()['real_conversion']
+    if not hasattr(Win11MainWindow, 'on_conversion_progress') and 'on_conversion_progress' in globals():
+        Win11MainWindow.on_conversion_progress = globals()['on_conversion_progress']
+    if not hasattr(Win11MainWindow, 'on_conversion_finished') and 'on_conversion_finished' in globals():
+        Win11MainWindow.on_conversion_finished = globals()['on_conversion_finished']
+    if not hasattr(Win11MainWindow, 'on_conversion_error') and 'on_conversion_error' in globals():
+        Win11MainWindow.on_conversion_error = globals()['on_conversion_error']
+    if not hasattr(Win11MainWindow, 'on_conversion_timeout') and 'on_conversion_timeout' in globals():
+        Win11MainWindow.on_conversion_timeout = globals()['on_conversion_timeout']
+    if not hasattr(Win11MainWindow, '_replace_local_paths_with_remote') and '_replace_local_paths_with_remote' in globals():
+        Win11MainWindow._replace_local_paths_with_remote = globals()['_replace_local_paths_with_remote']
+except Exception:
+    pass
 
     def _replace_local_paths_with_remote(self, md: str, base_dir: str, mapping: dict) -> str:
         """将 Markdown 中 ./images 或 images 的相对路径替换为远程 URL"""

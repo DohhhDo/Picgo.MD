@@ -1,0 +1,23 @@
+DARK_TOKENS = {
+    'bg': '#0D1117', 'surface': '#111827', 'text': '#E5E7EB', 'subtext': '#9CA3AF', 'border': '#1F2937',
+    'primary': '#16A34A', 'primary_hover': '#15803D', 'primary_press': '#166534',
+    'quality_badge_bg': '#0B1220', 'quality_badge_border': '#173D2A', 'quality_badge_text': '#86EFAC',
+    'slider_track': '#1F2937', 'slider_fill': '#16A34A',
+    'progress_bg': '#1F2937', 'progress_fill': '#16A34A', 'progress_text': '#E5E7EB',
+    'chip_bg': '#0D1E14', 'chip_text': '#86EFAC', 'chip_border': '#173D2A',
+    'chip_hover_bg': '#0F2318', 'chip_pressed_bg': '#10331F',
+    'chip_selected_bg': '#10331F', 'chip_selected_text': '#86EFAC', 'chip_selected_border': '#16A34A'
+}
+
+LIGHT_TOKENS = {
+    'bg': '#F6F8FA', 'surface': '#FFFFFF', 'text': '#0F172A', 'subtext': '#475569', 'border': '#E5E7EB',
+    'primary': '#16A34A', 'primary_hover': '#15803D', 'primary_press': '#166534',
+    'quality_badge_bg': '#ECFDF5', 'quality_badge_border': '#A7F3D0', 'quality_badge_text': '#065F46',
+    'slider_track': '#D1FAE5', 'slider_fill': '#16A34A',
+    'progress_bg': '#E2F7EC', 'progress_fill': '#16A34A', 'progress_text': '#166534',
+    'chip_bg': '#F8FAFC', 'chip_text': '#166534', 'chip_border': '#D1FAE5',
+    'chip_hover_bg': '#ECFDF5', 'chip_pressed_bg': '#DCFCE7',
+    'chip_selected_bg': '#DCFCE7', 'chip_selected_text': '#166534', 'chip_selected_border': '#16A34A'
+}
+
+

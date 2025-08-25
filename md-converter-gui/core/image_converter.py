@@ -107,8 +107,17 @@ class WebPConverter:
                 'Referer': 'https://www.google.com/',
             }
 
+            # 处理包含空格与中文字符的 URL（例如阿里云 OSS 对象名中存在空格），先快速 HEAD 取 Content-Type
+            safe_url = requests.utils.requote_uri(url)
+            try:
+                head = requests.head(safe_url, headers=headers, timeout=(5, 10), allow_redirects=True)
+                head.raise_for_status()
+            except Exception:
+                # 忽略 head 失败，继续走 get
+                pass
+
             # 先发起 GET（流式）并设置合理超时：连接 8s，读取 25s
-            resp = requests.get(url, headers=headers, timeout=(8, 25), stream=True, allow_redirects=True)
+            resp = requests.get(safe_url, headers=headers, timeout=(8, 25), stream=True, allow_redirects=True)
             resp.raise_for_status()
 
             # 简单校验内容类型
@@ -206,7 +215,12 @@ class MarkdownImageProcessor:
         
         if not image_urls:
             self._update_progress(100, "未找到图片链接")
-            return markdown_text, 0, {"total_original_size": 0, "total_converted_size": 0, "compression_ratio": 0}
+            return markdown_text, 0, {
+                "total_original_size": 0,
+                "total_converted_size": 0,
+                "compression_ratio": 0,
+                "size_saved": 0,
+            }
         
         self._update_progress(10, f"找到 {len(image_urls)} 个图片链接")
         
