@@ -29,7 +29,7 @@ class Win11MarkdownEditor(QTextEdit):
         if self.is_dark_theme:
             self.setStyleSheet(
                 """
-                QTextEdit { background-color: #1e1e1e; color: #ffffff; border: 1px solid #3f3f3f; border-radius: 4px; padding: 12px; line-height: 1.4; selection-background-color: #0078d4; selection-color: #ffffff; font-family: 'Segoe UI'; }
+                QTextEdit { background-color: #1e1e1e; color: #ffffff; border: none; border-radius: 4px; padding: 12px; line-height: 1.4; selection-background-color: #0078d4; selection-color: #ffffff; font-family: 'Segoe UI'; }
                 QScrollBar:vertical { background: transparent; width: 12px; border: none; }
                 QScrollBar::handle:vertical { background: #606060; border-radius: 6px; min-height: 20px; margin: 2px; }
                 QScrollBar::handle:vertical:hover { background: #808080; }
@@ -39,7 +39,7 @@ class Win11MarkdownEditor(QTextEdit):
         else:
             self.setStyleSheet(
                 """
-                QTextEdit { background-color: #ffffff; color: #000000; border: 1px solid #8a8886; border-radius: 4px; padding: 12px; line-height: 1.4; selection-background-color: #0078d4; selection-color: #ffffff; font-family: 'Segoe UI'; }
+                QTextEdit { background-color: #ffffff; color: #000000; border: none; border-radius: 4px; padding: 12px; line-height: 1.4; selection-background-color: #0078d4; selection-color: #ffffff; font-family: 'Segoe UI'; }
                 QScrollBar:vertical { background: transparent; width: 12px; border: none; }
                 QScrollBar::handle:vertical { background: #606060; border-radius: 6px; min-height: 20px; margin: 2px; }
                 QScrollBar::handle:vertical:hover { background: #808080; }

@@ -18,7 +18,7 @@ class UploadManager:
         self.settings = QSettings("MdImgConverter", "Settings")
 
     def _load_aliyun_config(self) -> Dict[str, str]:
-        return {
+        cfg = {
             "access_key_id": self.settings.value("imgbed/aliyun/accessKeyId", ""),
             "access_key_secret": self.settings.value("imgbed/aliyun/accessKeySecret", ""),
             "bucket_name": self.settings.value("imgbed/aliyun/bucket", ""),
@@ -26,15 +26,25 @@ class UploadManager:
             "storage_path_prefix": self.settings.value("imgbed/aliyun/prefix", "images"),
             "custom_domain": self.settings.value("imgbed/aliyun/customDomain", ""),
         }
+        try:
+            print(f"[UploadManager] cfg loaded: provider={self.settings.value('imgbed/provider','')} enabled={self.settings.value('imgbed/enabled', True, type=bool)}", flush=True)
+        except Exception:
+            pass
+        return cfg
 
     def upload_webps(self, local_paths: List[str]) -> Dict[str, str]:
         """上传本地 webp 文件，返回 {local_path: remote_url}"""
         provider = self.settings.value("imgbed/provider", "")
-        enabled = self.settings.value("imgbed/enabled", False, type=bool)
-        if provider != "aliyun_oss" or not enabled:
+        enabled = self.settings.value("imgbed/enabled", True, type=bool)
+        cfg = self._load_aliyun_config()
+        # 容错：未设置 provider 或开关，但已配置阿里云字段时仍允许上传
+        allow_aliyun = (
+            provider == "aliyun_oss" or
+            all(cfg.get(k) for k in ["access_key_id", "access_key_secret", "bucket_name", "endpoint"])  # 基本配置齐全
+        ) and enabled
+        if not allow_aliyun:
             return {}
 
-        cfg = self._load_aliyun_config()
         adapter = AliOssAdapter(**cfg)
         mapping: Dict[str, str] = {}
         for p in local_paths:
@@ -46,9 +56,13 @@ class UploadManager:
     # 供后台线程逐个上传并汇报进度
     def get_adapter_if_enabled(self):
         provider = self.settings.value("imgbed/provider", "")
-        enabled = self.settings.value("imgbed/enabled", False, type=bool)
-        if provider == "aliyun_oss" and enabled:
-            cfg = self._load_aliyun_config()
+        enabled = self.settings.value("imgbed/enabled", True, type=bool)
+        cfg = self._load_aliyun_config()
+        # 容错：provider 未写入但已配置阿里云字段时仍返回适配器
+        if enabled and (
+            provider == "aliyun_oss" or
+            all(cfg.get(k) for k in ["access_key_id", "access_key_secret", "bucket_name", "endpoint"])
+        ):
             return AliOssAdapter(**cfg)
         return None
 

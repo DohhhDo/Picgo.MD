@@ -104,11 +104,19 @@ class WebPConverter:
                     'Chrome/124.0 Safari/537.36'
                 ),
                 'Accept': 'image/avif,image/webp,image/apng,image/*,*/*;q=0.8',
-                'Referer': 'https://www.google.com/',
             }
 
             # 处理包含空格与中文字符的 URL（例如阿里云 OSS 对象名中存在空格），先快速 HEAD 取 Content-Type
             safe_url = requests.utils.requote_uri(url)
+            # 动态设置 Referer：多数站点允许来自自身域的请求
+            try:
+                from urllib.parse import urlparse
+                _p = urlparse(safe_url)
+                if _p.scheme and _p.netloc:
+                    headers['Referer'] = f"{_p.scheme}://{_p.netloc}/"
+            except Exception:
+                # 回退到通用 Referer
+                headers.setdefault('Referer', 'https://www.google.com/')
             try:
                 head = requests.head(safe_url, headers=headers, timeout=(5, 10), allow_redirects=True)
                 head.raise_for_status()
@@ -183,16 +191,22 @@ class MarkdownImageProcessor:
     
     def find_image_links(self, markdown_text: str) -> List[str]:
         """查找Markdown中的所有图片链接"""
-        # 匹配 ![alt](url) 和 <img src="url"> 格式
-        pattern = r'(?:!\[.*?\]\((.*?)\))|(?:<img.*?src=["\']([^"\']*)["\'].*?>)'
+        # 匹配 ![alt](url) 和 <img src="url"> 格式；允许 ] 与 ( 之间存在空格
+        pattern = r'(?:!\[.*?\]\s*\((.*?)\))|(?:<img.*?src=["\']([^"\']*)["\'].*?>)'
         matches = re.findall(pattern, markdown_text)
         
         # 提取非空的URL
         urls = []
         for match in matches:
             url = match[0] or match[1]  # 取第一个非空的组
-            if url and url.strip():
-                urls.append(url.strip())
+            if not url:
+                continue
+            candidate = url.strip()
+            # 允许 Markdown 形式 ![](<url with space>)，去除外围尖括号
+            if candidate.startswith('<') and candidate.endswith('>'):
+                candidate = candidate[1:-1].strip()
+            if candidate:
+                urls.append(candidate)
         
         return urls
     
@@ -243,8 +257,9 @@ class MarkdownImageProcessor:
                         relative_path = os.path.relpath(webp_path, os.path.dirname(output_dir))
                         relative_path = relative_path.replace('\\', '/')  # 统一使用正斜杠
                         
-                        # 替换Markdown中的链接
-                        new_markdown = new_markdown.replace(url, relative_path)
+                        # 替换Markdown中的链接（同时处理可能存在的尖括号包裹形式）
+                        for old in (f'<{url}>', url):
+                            new_markdown = new_markdown.replace(old, relative_path)
                         success_count += 1
                         total_original_size += original_size
                         total_converted_size += converted_size
@@ -260,8 +275,9 @@ class MarkdownImageProcessor:
                         relative_path = os.path.relpath(webp_path, os.path.dirname(output_dir))
                         relative_path = relative_path.replace('\\', '/')
                         
-                        # 替换Markdown中的链接
-                        new_markdown = new_markdown.replace(url, relative_path)
+                        # 替换Markdown中的链接（同时处理可能存在的尖括号包裹形式）
+                        for old in (f'<{url}>', url):
+                            new_markdown = new_markdown.replace(old, relative_path)
                         success_count += 1
                         total_original_size += original_size
                         total_converted_size += converted_size
