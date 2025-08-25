@@ -28,10 +28,9 @@ class ImageBedDialog(QDialog):
         root.addLayout(top)
 
         self.tabs = QTabWidget(self)
-        self.tab_status = QWidget(); self.tab_config = QWidget(); self.tab_advanced = QWidget()
+        self.tab_status = QWidget(); self.tab_config = QWidget()
         self.tabs.addTab(self.tab_status, "选择与状态")
         self.tabs.addTab(self.tab_config, "凭据与配置")
-        self.tabs.addTab(self.tab_advanced, "高级与策略")
         root.addWidget(self.tabs)
 
         st = QVBoxLayout(self.tab_status)
@@ -49,8 +48,7 @@ class ImageBedDialog(QDialog):
         form.addStretch(); scroll.setWidget(host)
         cfg = QVBoxLayout(self.tab_config); cfg.addWidget(scroll)
 
-        adv = QVBoxLayout(self.tab_advanced)
-        self.chk_enable_upload = QCheckBox("启用转换后自动上传"); adv.addWidget(self.chk_enable_upload); adv.addStretch()
+        # 移除“高级与策略”页与自动上传开关，默认启用
 
         btns = QDialogButtonBox(QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Close)
         self.test_btn = QPushButton("测试上传"); btns.addButton(self.test_btn, QDialogButtonBox.ButtonRole.ActionRole)
@@ -86,8 +84,8 @@ class ImageBedDialog(QDialog):
         settings = QSettings("MdImgConverter", "Settings")
         prov = self._provider_key()
         settings.setValue("imgbed/provider", prov)
-        enabled = bool(self.chk_enable_upload.isChecked()) if hasattr(self, 'chk_enable_upload') else False
-        settings.setValue("imgbed/enabled", enabled)
+        # 强制启用自动上传
+        settings.setValue("imgbed/enabled", True)
         if prov == "aliyun_oss":
             endpoint = self._normalize_aliyun_endpoint(self.field_endpoint.text())
             settings.setValue("imgbed/aliyun/endpoint", endpoint)

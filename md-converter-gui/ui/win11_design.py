@@ -14,6 +14,10 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt, QTimer, QSize, pyqtSignal, QSettings, QRect, QPoint, QPropertyAnimation, QEasingCurve
 from PyQt6.QtGui import QFont, QAction, QPalette, QColor, QPixmap, QPainter, QScreen, QCursor, QIcon
+try:
+    from PyQt6.QtSvg import QSvgRenderer
+except Exception:
+    QSvgRenderer = None
 import sys
 import os
 from pathlib import Path
@@ -247,7 +251,6 @@ class Win11ControlPanel(QWidget):
             return """
                 QFrame {
                     background-color: #2b2b2b;
-                    border: 1px solid #3a3a3a;
                     border-radius: 10px;
                     padding: 0px;
                 }
@@ -256,7 +259,6 @@ class Win11ControlPanel(QWidget):
             return """
                 QFrame {
                     background-color: #ffffff;
-                    border: 1px solid #e5e5e5;
                     border-radius: 10px;
                     padding: 0px;
                 }
@@ -279,7 +281,7 @@ class Win11ControlPanel(QWidget):
         """创建图片质量设置卡片"""
         card = QFrame()
         card.setFrameStyle(QFrame.Shape.NoFrame)
-        # 取消卡片边框与阴影，弱化分隔，减少“小框线”感
+        # 取消卡片边框与阴影，弱化分隔，减少"小框线"感
         card.setStyleSheet("""
             QFrame { background-color: transparent; border: none; }
         """)
@@ -496,11 +498,7 @@ class Win11ControlPanel(QWidget):
         self.lossless_btn.clicked.connect(lambda: self.set_quality_preset(100))
         layout.addWidget(self.lossless_btn)
         
-        # 分隔线
-        separator = QFrame()
-        separator.setFrameShape(QFrame.Shape.HLine)
-        separator.setStyleSheet("QFrame { color: #e1dfdd; margin: 8px 0px; }")
-        layout.addWidget(separator)
+        # 移除分隔线，保持整体简洁
         
         # 预设网格
         grid_layout = QGridLayout()
@@ -828,6 +826,10 @@ class Win11MainWindow(QMainWindow):
         super().__init__()
         self.current_file = None
         self.settings = QSettings("MdImgConverter", "Settings")
+        # 合并流程标记与最近一次转换统计
+        self._combined_flow = False
+        self._last_convert_count = 0
+        self._last_convert_stats = {}
         self.setup_ui()
         self.setup_status_bar()
         self.restore_window_state()
@@ -850,7 +852,7 @@ class Win11MainWindow(QMainWindow):
         # Win11风格菜单栏
         self.setup_menu_bar()
 
-        # 顶部 Hero 区（方案A）：价值主张 + 大按钮
+        # 顶部 Hero 区（方案A）：价值主张 + 大按钮 + 右侧主题切换
         hero = self.create_hero_bar()
         container_layout.addWidget(hero)
         
@@ -859,13 +861,13 @@ class Win11MainWindow(QMainWindow):
         content_layout = QHBoxLayout()
         # 让编辑器左侧与窗口留白（仅左边 12px）
         content_layout.setContentsMargins(12, 0, 0, 0)
-        content_layout.setSpacing(1)  # Win11分割线宽度
+        content_layout.setSpacing(0)
         
         # 创建分割器
         self.splitter = QSplitter(Qt.Orientation.Horizontal)
         self.splitter.setHandleWidth(1)
-        # 分割线颜色在主题中统一更新，这里设置默认较柔的浅色
-        self.splitter.setStyleSheet("QSplitter::handle{background-color:#e5e5e5;}")
+        # 隐藏分割线
+        self.splitter.setStyleSheet("QSplitter::handle{background-color:transparent;}")
         
         # 左侧编辑器
         self.editor = Win11MarkdownEditor()
@@ -883,10 +885,7 @@ class Win11MainWindow(QMainWindow):
         content_widget.setLayout(content_layout)
         container_layout.addWidget(content_widget)
 
-        # 底部吸附提示条
-        hint_bar = self.create_bottom_hint_bar()
-        self.hint_bar = hint_bar
-        container_layout.addWidget(hint_bar)
+        # 底部提示栏已移除，保持界面简洁
         
         main_container.setLayout(container_layout)
         
@@ -949,13 +948,14 @@ class Win11MainWindow(QMainWindow):
             self.control_panel.progress_text.setStyleSheet("QLabel{color:#e5e7eb;font-size:12px;}")
             # 顶部Hero与底部提示
             if hasattr(self, 'hero_frame'):
-                self.hero_frame.setStyleSheet("QFrame{background-color:#111827;border-bottom:1px solid #1f2937;}")
+                # 去除底部分割线，保持干净
+                self.hero_frame.setStyleSheet("QFrame{background-color:#111827;}")
             if hasattr(self, 'hero_title_label'):
                 self.hero_title_label.setStyleSheet("QLabel{color:#f9fafb;font-size:18px;font-weight:700;}")
             if hasattr(self, 'hero_subtitle_label'):
                 self.hero_subtitle_label.setStyleSheet("QLabel{color:#9ca3af;font-size:12px;}")
             if hasattr(self, 'hint_bar'):
-                self.hint_bar.setStyleSheet("QFrame{background-color:#0b1220;border-top:1px solid #1f2937;}")
+                self.hint_bar.setStyleSheet("QFrame{background-color:#0b1220;}")
             if hasattr(self, 'hint_label'):
                 self.hint_label.setStyleSheet("QLabel{color:#94a3b8;font-size:12px;}")
             self.update_icons(True)
@@ -963,12 +963,17 @@ class Win11MainWindow(QMainWindow):
             self.control_panel.apply_tokens(tokens)
             # Hero 颜色与按钮样式
             if hasattr(self, 'hero_frame'):
-                self.hero_frame.setStyleSheet("QFrame{background-color:#111827;border-bottom:1px solid #1f2937;}")
+                self.hero_frame.setStyleSheet("QFrame{background-color:#111827;}")
             if hasattr(self, 'hero_title_label'):
                 self.hero_title_label.setStyleSheet("QLabel{color:#f9fafb;font-size:18px;font-weight:700;}")
             if hasattr(self, 'hero_subtitle_label'):
                 self.hero_subtitle_label.setStyleSheet("QLabel{color:#9ca3af;font-size:12px;}")
-            for btn in [getattr(self,'hero_open_btn',None), getattr(self,'hero_paste_btn',None), getattr(self,'hero_clear_btn',None)]:
+            for btn in [
+                getattr(self,'hero_open_btn',None),
+                getattr(self,'hero_paste_btn',None),
+                getattr(self,'hero_clear_btn',None),
+                getattr(self,'hero_imagebed_btn',None),
+            ]:
                 if btn is not None:
                     btn.setStyleSheet("QToolButton{color:#E5E7EB;background:transparent;border:none;padding:2px 8px;} QToolButton:hover{background:#1f2937;border-radius:4px;}")
             if hasattr(self, 'hero_start_btn'):
@@ -981,12 +986,14 @@ class Win11MainWindow(QMainWindow):
                 )
             # 底部状态栏与提示条同步深色
             if hasattr(self, 'status_bar'):
+                # 去除状态栏顶部分割线
                 self.status_bar.setStyleSheet(
-                    "QStatusBar{background-color:#0F141A;color:#E6EAF0;border-top:1px solid #1F2937;padding:4px 16px;font-size:12px;}"
+                    "QStatusBar{background-color:#0F141A;color:#E6EAF0;padding:4px 16px;font-size:12px;}"
                 )
             # 分割线更暗，避免过亮
             if hasattr(self, 'splitter'):
-                self.splitter.setStyleSheet("QSplitter::handle{background-color:#1F2937;}")
+                # 隐藏分割线
+                self.splitter.setStyleSheet("QSplitter::handle{background-color:transparent;}")
         else:
             # tokens - Clean Contrast (Light)
             tokens = {
@@ -1002,7 +1009,7 @@ class Win11MainWindow(QMainWindow):
             # 浅色
             self.setStyleSheet("""
                 QMainWindow { background-color: #ffffff; }
-                QMenuBar { background-color: #f9f9f9; color: #323130; border-bottom: 1px solid #e5e5e5; }
+                QMenuBar { background-color: #f9f9f9; color: #323130; }
                 QMenuBar::item:selected { background-color: #f3f2f1; }
             """)
             self.editor.is_dark_theme = False
@@ -1011,13 +1018,13 @@ class Win11MainWindow(QMainWindow):
             self.control_panel.apply_panel_theme()
             self.control_panel.progress_text.setStyleSheet("QLabel{color:#166534;font-size:12px;}")
             if hasattr(self, 'hero_frame'):
-                self.hero_frame.setStyleSheet("QFrame{background-color:#E8F5E9;border-bottom:1px solid #e5e5e5;}")
+                self.hero_frame.setStyleSheet("QFrame{background-color:#E8F5E9;}")
             if hasattr(self, 'hero_title_label'):
                 self.hero_title_label.setStyleSheet("QLabel{color:#065f46;font-size:18px;font-weight:700;}")
             if hasattr(self, 'hero_subtitle_label'):
                 self.hero_subtitle_label.setStyleSheet("QLabel{color:#0f766e;font-size:12px;}")
             if hasattr(self, 'hint_bar'):
-                self.hint_bar.setStyleSheet("QFrame{background-color:#f8fafc;border-top:1px solid #e5e5e5;}")
+                self.hint_bar.setStyleSheet("QFrame{background-color:#f8fafc;}")
             if hasattr(self, 'hint_label'):
                 self.hint_label.setStyleSheet("QLabel{color:#334155;font-size:12px;}")
             self.update_icons(False)
@@ -1025,12 +1032,17 @@ class Win11MainWindow(QMainWindow):
             self.control_panel.apply_tokens(tokens)
             # Hero 颜色与按钮样式
             if hasattr(self, 'hero_frame'):
-                self.hero_frame.setStyleSheet("QFrame{background-color:#E8F5E9;border-bottom:1px solid #e5e5e5;}")
+                self.hero_frame.setStyleSheet("QFrame{background-color:#E8F5E9;}")
             if hasattr(self, 'hero_title_label'):
                 self.hero_title_label.setStyleSheet("QLabel{color:#065f46;font-size:18px;font-weight:700;}")
             if hasattr(self, 'hero_subtitle_label'):
                 self.hero_subtitle_label.setStyleSheet("QLabel{color:#0f766e;font-size:12px;}")
-            for btn in [getattr(self,'hero_open_btn',None), getattr(self,'hero_paste_btn',None), getattr(self,'hero_clear_btn',None)]:
+            for btn in [
+                getattr(self,'hero_open_btn',None),
+                getattr(self,'hero_paste_btn',None),
+                getattr(self,'hero_clear_btn',None),
+                getattr(self,'hero_imagebed_btn',None),
+            ]:
                 if btn is not None:
                     btn.setStyleSheet("QToolButton{color:#065f46;background:#ECFDF5;border:1px solid #A7F3D0;border-radius:6px;padding:2px 8px;} QToolButton:hover{background:#DCFCE7;}")
             if hasattr(self, 'hero_start_btn'):
@@ -1044,14 +1056,43 @@ class Win11MainWindow(QMainWindow):
             # 底部状态栏浅色
             if hasattr(self, 'status_bar'):
                 self.status_bar.setStyleSheet(
-                    "QStatusBar{background-color:#FFFFFF;color:#605e5c;border-top:1px solid #e5e5e5;padding:4px 16px;font-size:12px;}"
+                    "QStatusBar{background-color:#FFFFFF;color:#605e5c;padding:4px 16px;font-size:12px;}"
                 )
             # 分割线更柔和
             if hasattr(self, 'splitter'):
-                self.splitter.setStyleSheet("QSplitter::handle{background-color:#e2e8f0;}")
+                self.splitter.setStyleSheet("QSplitter::handle{background-color:transparent;}")
         # 重新渲染质量/预设等控件样式
         self.control_panel.update_preset_button_states(self.control_panel.quality_value)
         # 无手动切换，故不更新切换图标
+
+    def _icon_from_svg_file(self, filename: str, color_hex: str | None = None, size: int = 28) -> QIcon | None:
+        """从项目根目录 /image/ 加载指定 SVG 并渲染为 QIcon，支持着色与尺寸。"""
+        p = Path.cwd() / 'image' / filename
+        if not p.exists():
+            return None
+        try:
+            if QSvgRenderer is not None:
+                renderer = QSvgRenderer(str(p))
+                pix = QPixmap(size, size)
+                pix.fill(Qt.GlobalColor.transparent)
+                painter = QPainter(pix)
+                renderer.render(painter)
+                if color_hex:
+                    painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceIn)
+                    painter.fillRect(pix.rect(), QColor(color_hex))
+                painter.end()
+                return QIcon(pix)
+            return QIcon(str(p))
+        except Exception:
+            return None
+
+    def _em_px(self, ref_widget: QWidget, em: float) -> int:
+        """把 em 转为像素：基于参考控件字体度量计算。"""
+        try:
+            fm = QFontMetrics(ref_widget.font())
+            return int(fm.height() * em)
+        except Exception:
+            return int(16 * em)
 
     def create_hero_bar(self) -> QWidget:
         """方案A：顶部 Hero 条，包含标题、副标题和开始转换按钮"""
@@ -1074,7 +1115,7 @@ class Win11MainWindow(QMainWindow):
         text_block = QWidget()
         v = QVBoxLayout()
         v.setContentsMargins(0, 0, 0, 0)
-        v.setSpacing(4)
+        v.setSpacing(0)
         v.addWidget(title)
         v.addWidget(subtitle)
         # Hero 内的动作行：打开 / 粘贴 / 清空（紧凑款）
@@ -1084,24 +1125,31 @@ class Win11MainWindow(QMainWindow):
         from PyQt6.QtWidgets import QToolButton
         self.hero_open_btn = QToolButton()
         self.hero_open_btn.setText("打开")
-        self.hero_open_btn.setFixedHeight(26)
+        self.hero_open_btn.setFixedHeight(34)
         self.hero_open_btn.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextOnly)
         self.hero_open_btn.clicked.connect(self.open_markdown_file)
         self.hero_paste_btn = QToolButton()
         self.hero_paste_btn.setText("粘贴")
-        self.hero_paste_btn.setFixedHeight(26)
+        self.hero_paste_btn.setFixedHeight(34)
         self.hero_paste_btn.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextOnly)
         self.hero_paste_btn.clicked.connect(self.paste_from_clipboard)
         self.hero_clear_btn = QToolButton()
         self.hero_clear_btn.setText("清空")
-        self.hero_clear_btn.setFixedHeight(26)
+        self.hero_clear_btn.setFixedHeight(34)
         self.hero_clear_btn.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextOnly)
         self.hero_clear_btn.clicked.connect(self.clear_editor)
         # 新增：图床入口
         self.hero_imagebed_btn = QToolButton()
         self.hero_imagebed_btn.setText("图床")
-        self.hero_imagebed_btn.setFixedHeight(26)
+        self.hero_imagebed_btn.setFixedHeight(34)
+        self.hero_imagebed_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.hero_imagebed_btn.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextOnly)
+        # 样式与前面三个一致（文本按钮，悬停高亮）
+        self.hero_imagebed_btn.setStyleSheet(
+            "QToolButton{background:transparent;color:#9CA3AF;padding:2px 8px;border:none;}"
+            "QToolButton:hover{background:rgba(255,255,255,0.06);border-radius:4px;color:#E5E7EB;}"
+            "QToolButton:pressed{background:rgba(255,255,255,0.10);}"
+        )
         self.hero_imagebed_btn.clicked.connect(self.open_image_bed_dialog)
         actions_row.addWidget(self.hero_open_btn)
         actions_row.addWidget(self.hero_paste_btn)
@@ -1111,46 +1159,67 @@ class Win11MainWindow(QMainWindow):
         v.addLayout(actions_row)
         text_block.setLayout(v)
 
-        start_btn = QPushButton("开始转换")
-        start_btn.setFixedHeight(38)
-        start_btn.setFixedWidth(128)
+        start_btn = QPushButton("开始")
+        start_btn.setFixedHeight(40)
+        start_btn.setFixedWidth(120)
         # 样式由 tokens 注入
         self.hero_start_btn = start_btn
         try:
             start_btn.clicked.disconnect()
         except Exception:
             pass
-        start_btn.clicked.connect(self.on_convert_clicked)
+        # 顶部"开始"采用合并流程：先转换，后上传，最后统一弹窗
+        def _start_combined():
+            self._combined_flow = True
+            self.status_label.setText("正在转换...")
+            self.real_conversion()
+        start_btn.clicked.connect(_start_combined)
 
         layout.addWidget(text_block, 1)
         layout.addStretch()
+        # 右侧放置主题切换图标按钮
+        theme_btn = QToolButton()
+        theme_btn.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
+        theme_btn.setFixedSize(38, 38)
+        theme_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        # 蓝色按钮，白色图标
+        theme_btn.setStyleSheet(
+            "QToolButton{background:#3B82F6;border:none;border-radius:8px;padding:4px 6px;color:#FFFFFF;}"
+            "QToolButton:hover{background:#2563EB;}"
+            "QToolButton:pressed{background:#1D4ED8;}"
+        )
+        theme_btn.clicked.connect(self.toggle_theme)
+        self.theme_tool_btn = theme_btn
+        # 初始图标由 update_icons 在 apply_theme 中设置
+        # 右侧顺序：主题按钮 + 间距 + 开始按钮
+        layout.addWidget(theme_btn, 0, Qt.AlignmentFlag.AlignVCenter)
+        spacer = QWidget(); spacer.setFixedWidth(6); layout.addWidget(spacer)
         layout.addWidget(start_btn, 0, Qt.AlignmentFlag.AlignVCenter)
         hero.setLayout(layout)
-        # 以 sizeHint 作为最小高度，随文字/按钮变化自适应
+        # 自适应高度：依据 em（字体高度）+ 左列行高 + 右侧按钮进行综合计算
         try:
-            hero.setMinimumHeight(hero.sizeHint().height())
+            t_h = title.sizeHint().height()
+            row_h = max(self.hero_open_btn.sizeHint().height(), self.hero_paste_btn.sizeHint().height(), self.hero_clear_btn.sizeHint().height(), self.hero_imagebed_btn.sizeHint().height())
+            right_btn_h = max(start_btn.sizeHint().height(), getattr(self, 'theme_tool_btn', theme_btn).sizeHint().height())
+            # 目标高度按 5.2em 为基线，进一步抬高
+            target_em_h = self._em_px(title, 5.2)
+            content_h = max(target_em_h, t_h, row_h, right_btn_h)
+            margins_v = 12 + 12
+            h = content_h + margins_v
+            # 合理区间，按 em 结果上下限约束
+            h = max(110, min(h, 168))
+            hero.setMinimumHeight(h)
+            hero.setMaximumHeight(h)
         except Exception:
             pass
         return hero
 
-    def create_bottom_hint_bar(self) -> QWidget:
-        """方案A：底部吸附提示条，引导拖拽/粘贴"""
-        bar = QFrame()
-        bar.setFixedHeight(34)
-        layout = QHBoxLayout()
-        layout.setContentsMargins(12, 6, 12, 6)
-        layout.setSpacing(8)
-        hint = QLabel("提示：可拖拽 Markdown 文件进来，或直接 Ctrl+V 粘贴内容")
-        self.hint_label = hint
-        layout.addWidget(hint)
-        layout.addStretch()
-        bar.setLayout(layout)
-        return bar
+    # 底部提示栏已删除
     
     def setup_menu_bar(self):
         """设置Win11风格菜单栏"""
         menubar = self.menuBar()
-        # 直接隐藏菜单栏（去掉“文件/编辑/视图/工具/帮助”）
+        # 直接隐藏菜单栏（去掉"文件/编辑/视图/工具/帮助"）
         menubar.hide()
         return
 
@@ -1192,6 +1261,13 @@ class Win11MainWindow(QMainWindow):
         self.imagebed_action.setStatusTip("图床选择与配置")
         self.imagebed_action.triggered.connect(self.open_image_bed_dialog)
         toolbar.addAction(self.imagebed_action)
+
+        # 主题切换按钮（FontAwesome 图标）
+        self.theme_action = QAction("主题", self)
+        self.theme_action.setStatusTip("切换深/浅色主题")
+        # 初始图标在 apply_theme -> update_icons 中设置
+        self.theme_action.triggered.connect(self.toggle_theme)
+        toolbar.addAction(self.theme_action)
     
     def setup_status_bar(self):
         """设置Win11风格状态栏"""
@@ -1214,35 +1290,76 @@ class Win11MainWindow(QMainWindow):
 
     def on_convert_clicked(self):
         """开始转换（供 Hero 按钮/右侧按钮调用）"""
+        # 合并流程：点击任何"转换/开始"都执行先转换后上传
+        self._combined_flow = True
         self.status_label.setText("正在转换...")
         self.real_conversion()
 
     def on_upload_clicked(self):
         """手动上传：把 images 下的 webp 上传并回写远程 URL"""
         try:
-            base_dir = os.path.dirname(self.current_file) if getattr(self, 'current_file', None) else os.getcwd()
-            img_dir = os.path.join(base_dir, "images")
-            if not os.path.isdir(img_dir):
-                QMessageBox.information(self, "提示", "未找到 images 目录，请先执行转换。")
-                return
-            local_webps = [os.path.join(img_dir, n) for n in os.listdir(img_dir) if n.lower().endswith('.webp')]
-            if not local_webps:
-                QMessageBox.information(self, "提示", "没有可上传的 WebP 文件。")
-                return
-            self.status_label.setText("正在上传...")
-            self.upload_worker = UploadWorker(base_dir, local_webps)
-            self.upload_worker.progress_updated.connect(self.on_conversion_progress)
-            def _on_uploaded(mapping: dict):
-                md = self.editor.toPlainText()
-                new_md = self._replace_local_paths_with_remote(md, base_dir, mapping)
-                self.editor.setPlainText(new_md)
-                self.status_label.setText("上传完成")
-                QMessageBox.information(self, "上传完成", "已将本地图片链接替换为远程 URL")
-            self.upload_worker.finished_with_mapping.connect(_on_uploaded)
-            self.upload_worker.error.connect(lambda e: QMessageBox.critical(self, "上传失败", e))
-            self.upload_worker.start()
+            self.start_upload(silent=False)
         except Exception as e:
             QMessageBox.critical(self, "上传失败", str(e))
+
+    def start_upload(self, silent: bool = True):
+        """启动上传流程；silent=True 时不弹窗，仅更新编辑器与状态栏"""
+        base_dir = os.path.dirname(self.current_file) if getattr(self, 'current_file', None) else os.getcwd()
+        img_dir = os.path.join(base_dir, "images")
+        try:
+            print(f"[GUI] start_upload: base_dir={base_dir} img_dir={img_dir}", flush=True)
+        except Exception:
+            pass
+        if not os.path.isdir(img_dir):
+            if not silent:
+                QMessageBox.information(self, "提示", "未找到 images 目录，请先执行转换。")
+            return
+        local_webps = [os.path.join(img_dir, n) for n in os.listdir(img_dir) if n.lower().endswith('.webp')]
+        try:
+            print(f"[GUI] start_upload: found {len(local_webps)} webp files", flush=True)
+        except Exception:
+            pass
+        if not local_webps:
+            if not silent:
+                QMessageBox.information(self, "提示", "没有可上传的 WebP 文件。")
+            return
+        self.status_label.setText("正在上传...")
+        self.upload_worker = UploadWorker(base_dir, local_webps)
+        self.upload_worker.progress_updated.connect(self.on_conversion_progress)
+        try:
+            print("[GUI] upload worker created", flush=True)
+        except Exception:
+            pass
+        def _on_uploaded(mapping: dict):
+            md = self.editor.toPlainText()
+            new_md = self._replace_local_paths_with_remote(md, base_dir, mapping)
+            self.editor.setPlainText(new_md)
+            self.status_label.setText("上传完成")
+            if not silent:
+                # 合并流程下的统一弹窗在上传完成后显示
+                if self._combined_flow:
+                    cnt = self._last_convert_count
+                    stats = self._last_convert_stats or {}
+                    from .utils import format_size_human as format_size
+                    original_size = stats.get('total_original_size', 0)
+                    saved_size = stats.get('size_saved', 0)
+                    compression_ratio = stats.get('compression_ratio', 0)
+                    msg = f"成功转换并上传 {cnt} 张图片！\n\n"
+                    if original_size > 0:
+                        msg += f"原始大小: {format_size(original_size)}\n"
+                        msg += f"节省空间: {format_size(saved_size)}\n"
+                        msg += f"压缩比例: {compression_ratio:.1f}%\n\n"
+                    msg += "图片已保存到 images 目录并替换为外链。"
+                    QMessageBox.information(self, "完成", msg)
+                    self._combined_flow = False
+                else:
+                    QMessageBox.information(self, "上传完成", "已将本地图片链接替换为远程 URL")
+        self.upload_worker.finished_with_mapping.connect(_on_uploaded)
+        if silent:
+            self.upload_worker.error.connect(lambda e: None)
+        else:
+            self.upload_worker.error.connect(lambda e: QMessageBox.critical(self, "上传失败", e))
+        self.upload_worker.start()
 
     # === 内置一份转换实现，确保方法存在于类上（避免外部重复定义导致找不到） ===
     def real_conversion(self):
@@ -1256,7 +1373,7 @@ class Win11MainWindow(QMainWindow):
         # 预检图片链接
         try:
             import re as _re
-            pattern = r'(?:!\[.*?\]\((.*?)\))|(?:<img.*?src=["\']([^"\']*)["\'].*?>)'
+            pattern = r'(?:!\[.*?\]\s*\((.*?)\))|(?:<img.*?src=["\']([^"\']*)["\'].*?>)'
             matches = _re.findall(pattern, markdown_text)
             urls = []
             for m in matches:
@@ -1316,10 +1433,31 @@ class Win11MainWindow(QMainWindow):
         self.control_panel.set_progress(0)
         self.status_label.setText(f"转换完成！成功转换 {count} 张图片")
 
+        # 记录统计以便合并流程统一弹窗
+        self._last_convert_count = count
+        self._last_convert_stats = stats
+
         from .utils import format_size_human as format_size
         original_size = stats.get('total_original_size', 0)
         saved_size = stats.get('size_saved', 0)
         compression_ratio = stats.get('compression_ratio', 0)
+
+        # 合并流程：不在此处弹窗，转而触发上传
+        if getattr(self, '_combined_flow', False):
+            # 无图片则仍提示
+            if count <= 0 and original_size == 0:
+                QMessageBox.information(self, "未找到图片", "未检测到 Markdown 中的图片链接，请确认语法：\n\n![](http://...) 或 <img src=\"...\">")
+                self._combined_flow = False
+                return
+            # 触发上传
+            try:
+                self.status_label.setText("转换完成，准备上传...")
+                QTimer.singleShot(0, lambda: self.start_upload(silent=False))
+            except Exception:
+                pass
+            return
+
+        # 非合并流程：保持原有弹窗
         if count <= 0 and original_size == 0:
             QMessageBox.information(self, "未找到图片", "未检测到 Markdown 中的图片链接，请确认语法：\n\n![](http://...) 或 <img src=\"...\">")
         else:
@@ -1391,7 +1529,12 @@ class Win11MainWindow(QMainWindow):
 
     # 不再提供手动切换主题
     def toggle_theme(self):
-        pass
+        """在深色与浅色主题间切换（使用 FontAwesome 图标）"""
+        try:
+            self.current_theme_dark = not getattr(self, 'current_theme_dark', False)
+        except Exception:
+            self.current_theme_dark = False
+        self.apply_theme(self.current_theme_dark)
 
     # ===== 图床设置对话框（骨架） =====
     def open_image_bed_dialog(self):
@@ -1431,13 +1574,33 @@ class Win11MainWindow(QMainWindow):
         self.status_label.setText("编辑器已清空")
 
     def update_icons(self, dark: bool):
-        """根据主题更新 FontAwesome 图标（若可用）"""
+        """根据主题更新图标。主题按钮使用本地 /image 下 SVG；其余图标若可用使用 qtawesome。"""
+        # 主题图标
+        # 主题图标：优先给工具栏按钮赋值；若无，则尝试给 Hero 的 theme_tool_btn 赋值
+        if hasattr(self, 'theme_action'):
+            # 固定使用根目录 /image 两个文件：fa-circle-half-stroke.svg（浅色）/ fa-lightbulb.svg（深色）
+            light_icon = self._icon_from_svg_file('circle-half-stroke-solid-full.svg')
+            dark_icon = self._icon_from_svg_file('lightbulb-solid-full.svg')
+            theme_icon = dark_icon if dark else light_icon
+            if theme_icon is not None:
+                self.theme_action.setIcon(theme_icon)
+        if hasattr(self, 'theme_tool_btn'):
+            # 图标统一使用白色
+            light_icon = self._icon_from_svg_file('circle-half-stroke-solid-full.svg', '#FFFFFF', 28)
+            dark_icon = self._icon_from_svg_file('lightbulb-solid-full.svg', '#FFFFFF', 28)
+            theme_icon = dark_icon if dark else light_icon
+            if theme_icon is not None:
+                self.theme_tool_btn.setIcon(theme_icon)
+                self.theme_tool_btn.setIconSize(QSize(28, 28))
+                self.theme_tool_btn.setText("")
+            else:
+                # 文本替代：浅色显示 []，深色显示 ()
+                self.theme_tool_btn.setIcon(QIcon())
+                self.theme_tool_btn.setText("()" if dark else "[]")
+        
+        # 以下图标若 qtawesome 可用则更新，否则跳过
         if qta is None:
             return
-        # 主题图标
-        if hasattr(self, 'theme_action'):
-            theme_icon = qta.icon('fa5s.sun', color='#fde68a') if dark else qta.icon('fa5s.moon', color='#111827')
-            self.theme_action.setIcon(theme_icon)
         # 工具栏图标
         common_color = '#e5e7eb' if dark else '#111827'
         if hasattr(self, 'open_action'):
@@ -1479,15 +1642,14 @@ class ImageBedDialog(QDialog):
 
         # Tabs
         self.tabs = QTabWidget(self)
-        self.tab_status = QWidget(); self.tab_config = QWidget(); self.tab_advanced = QWidget()
+        self.tab_status = QWidget(); self.tab_config = QWidget()
         self.tabs.addTab(self.tab_status, "选择与状态")
         self.tabs.addTab(self.tab_config, "凭据与配置")
-        self.tabs.addTab(self.tab_advanced, "高级与策略")
         root.addWidget(self.tabs)
 
         # 选择与状态
         st = QVBoxLayout(self.tab_status)
-        st.addWidget(QLabel("说明：选择图床后，可在下方“保存”并稍后进行上传测试。"))
+        st.addWidget(QLabel("说明：选择图床后，可在下方\"保存\"并稍后进行上传测试。"))
         st.addStretch()
 
         # 凭据与配置（占位表单）
@@ -1503,11 +1665,7 @@ class ImageBedDialog(QDialog):
         form.addStretch(); scroll.setWidget(host)
         cfg = QVBoxLayout(self.tab_config); cfg.addWidget(scroll)
 
-        # 高级与策略（占位）
-        adv = QVBoxLayout(self.tab_advanced)
-        self.chk_enable_upload = QCheckBox("启用转换后自动上传")
-        adv.addWidget(self.chk_enable_upload)
-        adv.addStretch()
+        # 移除"高级与策略"页，默认始终启用自动上传
 
         # 底部按钮：保存 / 测试上传 / 关闭
         btns = QDialogButtonBox(QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Close)
@@ -1558,8 +1716,8 @@ class ImageBedDialog(QDialog):
         prov = self._provider_key()
         settings.setValue("imgbed/provider", prov)
         # 是否启用自动上传
-        enabled = bool(self.chk_enable_upload.isChecked()) if hasattr(self, 'chk_enable_upload') else False
-        settings.setValue("imgbed/enabled", enabled)
+        # 强制启用自动上传
+        settings.setValue("imgbed/enabled", True)
         # 仅针对阿里云字段（其余图床后续补充）
         if prov == "aliyun_oss":
             endpoint = self._normalize_aliyun_endpoint(self.field_endpoint.text())
@@ -1612,7 +1770,14 @@ class ImageBedDialog(QDialog):
             QMessageBox.critical(self, "测试失败", str(e))
     
     def on_convert_clicked(self):
-        """转换按钮点击事件"""
+        """转换按钮点击事件（合并流程：先转换后上传）"""
+        self._combined_flow = True
+        self.status_label.setText("正在转换...")
+        self.real_conversion()
+
+    def on_start_clicked(self):
+        """顶部"开始"合并流程：先转换，后上传（静默），再一次性弹窗"""
+        self._combined_flow = True
         self.status_label.setText("正在转换...")
         self.real_conversion()
     
@@ -1648,7 +1813,7 @@ class ImageBedDialog(QDialog):
         # UI 侧先行快速校验是否含有图片链接，避免无感卡住
         try:
             import re as _re
-            _pattern = r'(?:!\[.*?\]\((.*?)\))|(?:<img.*?src=["\']([^"\']*)["\'].*?>)'
+            _pattern = r'(?:!\[.*?\]\s*\((.*?)\))|(?:<img.*?src=["\']([^"\']*)["\'].*?>)'
             _matches = _re.findall(_pattern, markdown_text)
             _urls = []
             for _m in _matches:
@@ -1746,7 +1911,7 @@ class ImageBedDialog(QDialog):
         self.control_panel.set_progress(0)
         self.status_label.setText(f"转换完成！成功转换 {count} 张图片")
 
-        # 不再自动上传，改为显式“上传”按钮触发
+        # 不再自动上传，改为显式"上传"按钮触发
         
         # 格式化统计信息用于显示
         from .utils import format_size_human as format_size
@@ -1755,21 +1920,35 @@ class ImageBedDialog(QDialog):
         saved_size = stats.get('size_saved', 0)
         compression_ratio = stats.get('compression_ratio', 0)
         
-        # 弹窗提示：区分未找到图片与成功转换
-        if count <= 0 and stats.get('total_original_size', 0) == 0:
-            QMessageBox.information(
-                self,
-                "未找到图片",
-                "未检测到 Markdown 中的图片链接，请确认语法：\n\n![](http://...) 或 <img src=\"...\">",
-            )
+        # 记录统计供合并流程使用
+        self._last_convert_count = count
+        self._last_convert_stats = stats
+
+        # 合并流程：不在此处弹窗，改为静默上传后统一提示
+        if self._combined_flow:
+            try:
+                # 状态栏提示
+                self.status_label.setText("转换完成，准备上传...")
+                # 让事件循环先返回，避免与收尾UI更新竞争
+                QTimer.singleShot(0, lambda: self.start_upload(silent=False))
+            except Exception:
+                pass
         else:
-            message = f"成功转换 {count} 张图片为WebP格式！\n\n"
-            if original_size > 0:
-                message += f"原始大小: {format_size(original_size)}\n"
-                message += f"节省空间: {format_size(saved_size)}\n"
-                message += f"压缩比例: {compression_ratio:.1f}%\n\n"
-            message += "图片已保存到 images 目录。"
-            QMessageBox.information(self, "转换完成", message)
+            # 非合并流程：保持原有弹窗
+            if count <= 0 and stats.get('total_original_size', 0) == 0:
+                QMessageBox.information(
+                    self,
+                    "未找到图片",
+                    "未检测到 Markdown 中的图片链接，请确认语法：\n\n![](http://...) 或 <img src=\"...\">",
+                )
+            else:
+                message = f"成功转换 {count} 张图片为WebP格式！\n\n"
+                if original_size > 0:
+                    message += f"原始大小: {format_size(original_size)}\n"
+                    message += f"节省空间: {format_size(saved_size)}\n"
+                    message += f"压缩比例: {compression_ratio:.1f}%\n\n"
+                message += "图片已保存到 images 目录。"
+                QMessageBox.information(self, "转换完成", message)
     
     def on_conversion_error(self, error_message):
         """转换错误"""

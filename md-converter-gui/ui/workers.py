@@ -58,11 +58,25 @@ class UploadWorker(QThread):
     def run(self):
         try:
             if UploadManager is None or not self.local_webps:
+                try:
+                    print("[Worker] UploadManager missing or no files", flush=True)
+                except Exception:
+                    pass
                 self.finished_with_mapping.emit({})
                 return
             um = UploadManager()
             adapter = um.get_adapter_if_enabled()
+            # 回退：若未显式启用但已配置图床，则也允许上传
             if adapter is None:
+                try:
+                    adapter = um.get_adapter()
+                except Exception:
+                    adapter = None
+            if adapter is None:
+                try:
+                    print("[Worker] No adapter available", flush=True)
+                except Exception:
+                    pass
                 self.finished_with_mapping.emit({})
                 return
             mapping = {}
@@ -74,6 +88,10 @@ class UploadWorker(QThread):
                     mapping[p] = url
                     self.progress_updated.emit(int(i / total * 100), f"上传 {i}/{total}：{fn}")
                 except Exception:
+                    try:
+                        print(f"[Worker] upload failed for {p}", flush=True)
+                    except Exception:
+                        pass
                     self.progress_updated.emit(int(i / total * 100), f"上传失败 {i}/{total}：{os.path.basename(p)}")
                     continue
             self.finished_with_mapping.emit(mapping)
