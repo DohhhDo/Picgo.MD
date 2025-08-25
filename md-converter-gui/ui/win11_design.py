@@ -826,7 +826,6 @@ class Win11MainWindow(QMainWindow):
     """Win11风格主窗口"""
     def __init__(self):
         super().__init__()
-        self._debug_ui = True
         self.current_file = None
         self.settings = QSettings("MdImgConverter", "Settings")
         self.setup_ui()
@@ -1216,19 +1215,7 @@ class Win11MainWindow(QMainWindow):
     def on_convert_clicked(self):
         """开始转换（供 Hero 按钮/右侧按钮调用）"""
         self.status_label.setText("正在转换...")
-        if getattr(self, '_debug_ui', False):
-            try:
-                QMessageBox.information(self, "DEBUG", "on_convert_clicked")
-            except Exception:
-                pass
-        try:
-            self.real_conversion()
-        except Exception as e:
-            try:
-                import traceback
-                QMessageBox.critical(self, "real_conversion 异常", traceback.format_exc())
-            except Exception:
-                pass
+        self.real_conversion()
 
     def on_upload_clicked(self):
         """手动上传：把 images 下的 webp 上传并回写远程 URL"""
@@ -1261,10 +1248,6 @@ class Win11MainWindow(QMainWindow):
     def real_conversion(self):
         """真正的图片转换过程（类内实现）"""
         markdown_text = self.editor.toPlainText().strip()
-        try:
-            print("[GUI] real_conversion(cls): text_len=", len(markdown_text), flush=True)
-        except Exception:
-            pass
         if not markdown_text:
             QMessageBox.information(self, "提示", "请先输入Markdown内容")
             self.status_label.setText("就绪")
@@ -1309,11 +1292,8 @@ class Win11MainWindow(QMainWindow):
         self.conversion_worker.start()
 
         # 看门狗
-        try:
-            if hasattr(self, 'conversion_watchdog') and self.conversion_watchdog is not None:
-                self.conversion_watchdog.stop()
-        except Exception:
-            pass
+        if hasattr(self, 'conversion_watchdog') and self.conversion_watchdog is not None:
+            self.conversion_watchdog.stop()
         self.conversion_watchdog = QTimer(self)
         self.conversion_watchdog.setSingleShot(True)
         self.conversion_watchdog.timeout.connect(self.on_conversion_timeout)
@@ -1322,18 +1302,12 @@ class Win11MainWindow(QMainWindow):
     def on_conversion_progress(self, progress, message):
         self.control_panel.set_progress(progress)
         self.status_label.setText(message)
-        try:
-            if hasattr(self, 'conversion_watchdog') and self.conversion_watchdog is not None:
-                self.conversion_watchdog.start(45000)
-        except Exception:
-            pass
+        if hasattr(self, 'conversion_watchdog') and self.conversion_watchdog is not None:
+            self.conversion_watchdog.start(45000)
 
     def on_conversion_finished(self, new_markdown, count, stats):
-        try:
-            if hasattr(self, 'conversion_watchdog') and self.conversion_watchdog is not None:
-                self.conversion_watchdog.stop()
-        except Exception:
-            pass
+        if hasattr(self, 'conversion_watchdog') and self.conversion_watchdog is not None:
+            self.conversion_watchdog.stop()
         self.editor.setPlainText(new_markdown)
         if hasattr(self.control_panel, 'update_compression_stats'):
             self.control_panel.update_compression_stats(stats)
@@ -1358,11 +1332,8 @@ class Win11MainWindow(QMainWindow):
             QMessageBox.information(self, "转换完成", msg)
 
     def on_conversion_error(self, error_message):
-        try:
-            if hasattr(self, 'conversion_watchdog') and self.conversion_watchdog is not None:
-                self.conversion_watchdog.stop()
-        except Exception:
-            pass
+        if hasattr(self, 'conversion_watchdog') and self.conversion_watchdog is not None:
+            self.conversion_watchdog.stop()
         self.control_panel.convert_btn.setEnabled(True)
         self.control_panel.convert_btn.setText("转换")
         self.control_panel.set_progress(0)
@@ -1370,13 +1341,10 @@ class Win11MainWindow(QMainWindow):
         QMessageBox.critical(self, "转换失败", error_message)
 
     def on_conversion_timeout(self):
-        try:
-            self.control_panel.convert_btn.setEnabled(True)
-            self.control_panel.convert_btn.setText("转换")
-            self.status_label.setText("转换超时，请检查网络或图片链接")
-            QMessageBox.warning(self, "转换超时", "转换耗时过长，可能网络较慢或图片地址不可达。稍后重试，或检查图片 URL。")
-        except Exception:
-            pass
+        self.control_panel.convert_btn.setEnabled(True)
+        self.control_panel.convert_btn.setText("转换")
+        self.status_label.setText("转换超时，请检查网络或图片链接")
+        QMessageBox.warning(self, "转换超时", "转换耗时过长，可能网络较慢或图片地址不可达。稍后重试，或检查图片 URL。")
 
     def _replace_local_paths_with_remote(self, md: str, base_dir: str, mapping: dict) -> str:
         def rel(p: str) -> tuple[str, str]:
@@ -1670,15 +1638,7 @@ class ImageBedDialog(QDialog):
         """真正的图片转换过程"""
         # 获取Markdown文本
         markdown_text = self.editor.toPlainText().strip()
-        if getattr(self, '_debug_ui', False):
-            try:
-                QMessageBox.information(self, "DEBUG", "enter real_conversion")
-            except Exception:
-                pass
-        try:
-            print("[GUI] real_conversion: text_len=", len(markdown_text), flush=True)
-        except Exception:
-            pass
+        # no debug popups or prints
         
         if not markdown_text:
             QMessageBox.information(self, "提示", "请先输入Markdown内容")
@@ -1695,7 +1655,7 @@ class ImageBedDialog(QDialog):
                 _u = _m[0] or _m[1]
                 if _u and _u.strip():
                     _urls.append(_u.strip())
-            print(f"[GUI] precheck image urls: {len(_urls)}", flush=True)
+            # no debug prints
             if not _urls:
                 self.control_panel.convert_btn.setEnabled(True)
                 self.control_panel.convert_btn.setText("转换")
@@ -1714,10 +1674,7 @@ class ImageBedDialog(QDialog):
         
         # 创建images目录
         output_dir = os.path.join(base_dir, "images")
-        try:
-            print("[GUI] base_dir=", base_dir, " output_dir=", output_dir, flush=True)
-        except Exception:
-            pass
+        # no debug prints
         
         # 获取质量设置
         quality = self.control_panel.quality_value
