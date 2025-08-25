@@ -200,29 +200,23 @@ class Win11ControlPanel(QWidget):
         main_layout.setSpacing(16)
         main_layout.setContentsMargins(20, 20, 20, 20)
         
-        # 转换按钮 - 方案A：主按钮置顶，随滚动始终可见
+        # 转换按钮 - 次按钮（描边款），仅保留顶部Hero为唯一主CTA
         self.convert_btn = QPushButton("转换")
         self.convert_btn.setFixedHeight(44)
         self.convert_btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.convert_btn.setStyleSheet("""
             QPushButton {
-                background-color: #16a34a; /* Primary */
-                color: white;
-                border: 1px solid #16a34a;
-                border-radius: 6px;
+                background: transparent;
+                color: #16a34a;
+                border: 1.5px solid #16a34a;
+                border-radius: 8px;
                 font-size: 15px;
                 font-family: 'Microsoft YaHei';
                 font-weight: 600;
                 padding: 8px 14px;
             }
-            QPushButton:hover {
-                background-color: #15803d;
-                border-color: #15803d;
-            }
-            QPushButton:pressed {
-                background-color: #166534;
-                border-color: #166534;
-            }
+            QPushButton:hover { background-color: #ecfdf5; }
+            QPushButton:pressed { background-color: #dcfce7; }
         """)
         main_layout.addWidget(self.convert_btn)
         
@@ -239,6 +233,74 @@ class Win11ControlPanel(QWidget):
         
         # 设置布局
         self.setLayout(main_layout)
+        # tokens 用于主题化
+        self.tokens = None
+
+    def apply_tokens(self, tokens: dict):
+        """应用主题 tokens 到控制面板各控件（方案2.1 Clean Contrast）"""
+        self.tokens = tokens
+        # 主转换按钮
+        self.convert_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {tokens['primary']};
+                color: white;
+                border: 1px solid {tokens['primary']};
+                border-radius: 6px;
+                font-size: 15px;
+                font-family: 'Microsoft YaHei';
+                font-weight: 600;
+                padding: 8px 14px;
+            }}
+            QPushButton:hover {{ background-color: {tokens['primary_hover']}; border-color: {tokens['primary_hover']}; }}
+            QPushButton:pressed {{ background-color: {tokens['primary_press']}; border-color: {tokens['primary_press']}; }}
+        """)
+
+        # 质量百分比徽标
+        self.quality_label.setStyleSheet(f"""
+            QLabel {{
+                background-color: {tokens['quality_badge_bg']};
+                color: {tokens['quality_badge_text']};
+                border: 1px solid {tokens['quality_badge_border']};
+                border-radius: 6px;
+                padding: 0px 8px;
+                font-size: 13px;
+                font-weight: 700;
+                font-family: 'Consolas','Microsoft YaHei';
+            }}
+        """)
+
+        # 滑杆样式
+        self.quality_slider.setStyleSheet(f"""
+            QSlider::groove:horizontal {{ background: {tokens['slider_track']}; height: 4px; border-radius: 2px; }}
+            QSlider::sub-page:horizontal {{ background: {tokens['slider_fill']}; border-radius: 2px; }}
+            QSlider::handle:horizontal {{ background: {tokens['slider_fill']}; width: 18px; height: 18px; border-radius: 9px; margin: -7px 0; }}
+            QSlider::handle:horizontal:hover {{ background: {tokens['primary_hover']}; }}
+        """)
+
+        # 进度条
+        if hasattr(self, 'progress_bg'):
+            self.progress_bg.setStyleSheet(f"QWidget {{ background-color: {tokens['progress_bg']}; border-radius: 3px; }}")
+        if hasattr(self, 'progress_fill'):
+            self.progress_fill.setStyleSheet(f"QWidget {{ background-color: {tokens['progress_fill']}; border-radius: 3px; }}")
+        if hasattr(self, 'progress_text'):
+            self.progress_text.setStyleSheet(f"QLabel {{ color: {tokens['progress_text']}; font-size: 12px; }}")
+
+        # 预设未选中样式
+        for chip in getattr(self, 'preset_chip_buttons', []):
+            chip.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: {tokens['chip_bg']};
+                    color: {tokens['chip_text']};
+                    border: 1px solid {tokens['chip_border']};
+                    border-radius: 15px;
+                    padding: 2px 12px;
+                    font-size: 12px; font-weight: 600;
+                }}
+                QPushButton:hover {{ background-color: {tokens['chip_hover_bg']}; }}
+                QPushButton:pressed {{ background-color: {tokens['chip_pressed_bg']}; }}
+            """)
+        # 选中态刷新
+        self.update_preset_button_states(self.quality_value)
     
     def apply_panel_theme(self):
         """应用控制面板主题"""
@@ -675,35 +737,34 @@ class Win11ControlPanel(QWidget):
                 """)
         
         # 更新轻量预设 Chips 选中状态
+        tokens = getattr(self, 'tokens', {}) or {}
         for chip in getattr(self, 'preset_chip_buttons', []):
             value = getattr(self, 'preset_chip_value', {}).get(chip, None)
             if value is None:
                 continue
             if value == selected_quality:
-                chip.setStyleSheet("""
-                    QPushButton {
-                        background-color: #dcfce7;
-                        color: #166534;
-                        border: 2px solid #16a34a;
-                        border-radius: 14px;
-                        padding: 2px 10px;
-                        font-size: 12px;
-                        font-weight: 700;
-                    }
+                chip.setStyleSheet(f"""
+                    QPushButton {{
+                        background-color: {tokens.get('chip_selected_bg', '#dcfce7')};
+                        color: {tokens.get('chip_selected_text', '#166534')};
+                        border: 2px solid {tokens.get('chip_selected_border', '#16a34a')};
+                        border-radius: 15px;
+                        padding: 2px 12px;
+                        font-size: 12px; font-weight: 700;
+                    }}
                 """)
             else:
-                chip.setStyleSheet("""
-                    QPushButton {
-                        background-color: #f8fafc;
-                        color: #166534;
-                        border: 1px solid #d1fae5;
-                        border-radius: 14px;
-                        padding: 2px 10px;
-                        font-size: 12px;
-                        font-weight: 600;
-                    }
-                    QPushButton:hover { background-color: #ecfdf5; }
-                    QPushButton:pressed { background-color: #dcfce7; }
+                chip.setStyleSheet(f"""
+                    QPushButton {{
+                        background-color: {tokens.get('chip_bg', '#f8fafc')};
+                        color: {tokens.get('chip_text', '#166534')};
+                        border: 1px solid {tokens.get('chip_border', '#d1fae5')};
+                        border-radius: 15px;
+                        padding: 2px 12px;
+                        font-size: 12px; font-weight: 600;
+                    }}
+                    QPushButton:hover {{ background-color: {tokens.get('chip_hover_bg', '#ecfdf5')}; }}
+                    QPushButton:pressed {{ background-color: {tokens.get('chip_pressed_bg', '#dcfce7')}; }}
                 """)
     
     def create_stats_card(self):
@@ -912,6 +973,7 @@ class Win11MainWindow(QMainWindow):
 
         # 底部吸附提示条
         hint_bar = self.create_bottom_hint_bar()
+        self.hint_bar = hint_bar
         container_layout.addWidget(hint_bar)
         
         main_container.setLayout(container_layout)
@@ -929,6 +991,17 @@ class Win11MainWindow(QMainWindow):
     def apply_theme(self, dark: bool):
         """根据主题开关设置全局与局部样式"""
         if dark:
+            # tokens - Clean Contrast (Dark)
+            tokens = {
+                'bg': '#0D1117', 'surface': '#111827', 'text': '#E5E7EB', 'subtext': '#9CA3AF', 'border': '#1F2937',
+                'primary': '#16A34A', 'primary_hover': '#15803D', 'primary_press': '#166534',
+                'quality_badge_bg': '#0B1220', 'quality_badge_border': '#173D2A', 'quality_badge_text': '#86EFAC',
+                'slider_track': '#1F2937', 'slider_fill': '#16A34A',
+                'progress_bg': '#1F2937', 'progress_fill': '#16A34A', 'progress_text': '#E5E7EB',
+                'chip_bg': '#0D1E14', 'chip_text': '#86EFAC', 'chip_border': '#173D2A',
+                'chip_hover_bg': '#0F2318', 'chip_pressed_bg': '#10331F',
+                'chip_selected_bg': '#10331F', 'chip_selected_text': '#86EFAC', 'chip_selected_border': '#16A34A'
+            }
             # 深色
             self.setStyleSheet("""
                 QMainWindow { background-color: #0f172a; }
@@ -955,7 +1028,20 @@ class Win11MainWindow(QMainWindow):
             if hasattr(self, 'hint_label'):
                 self.hint_label.setStyleSheet("QLabel{color:#94a3b8;font-size:12px;}")
             self.update_icons(True)
+            # 应用 tokens 到右栏
+            self.control_panel.apply_tokens(tokens)
         else:
+            # tokens - Clean Contrast (Light)
+            tokens = {
+                'bg': '#F6F8FA', 'surface': '#FFFFFF', 'text': '#0F172A', 'subtext': '#475569', 'border': '#E5E7EB',
+                'primary': '#16A34A', 'primary_hover': '#15803D', 'primary_press': '#166534',
+                'quality_badge_bg': '#ECFDF5', 'quality_badge_border': '#A7F3D0', 'quality_badge_text': '#065F46',
+                'slider_track': '#D1FAE5', 'slider_fill': '#16A34A',
+                'progress_bg': '#E2F7EC', 'progress_fill': '#16A34A', 'progress_text': '#166534',
+                'chip_bg': '#F8FAFC', 'chip_text': '#166534', 'chip_border': '#D1FAE5',
+                'chip_hover_bg': '#ECFDF5', 'chip_pressed_bg': '#DCFCE7',
+                'chip_selected_bg': '#DCFCE7', 'chip_selected_text': '#166534', 'chip_selected_border': '#16A34A'
+            }
             # 浅色
             self.setStyleSheet("""
                 QMainWindow { background-color: #ffffff; }
@@ -978,6 +1064,8 @@ class Win11MainWindow(QMainWindow):
             if hasattr(self, 'hint_label'):
                 self.hint_label.setStyleSheet("QLabel{color:#334155;font-size:12px;}")
             self.update_icons(False)
+            # 应用 tokens 到右栏
+            self.control_panel.apply_tokens(tokens)
         # 重新渲染质量/预设等控件样式
         self.control_panel.update_preset_button_states(self.control_panel.quality_value)
         # 更新工具栏图标
@@ -988,27 +1076,18 @@ class Win11MainWindow(QMainWindow):
     def create_hero_bar(self) -> QWidget:
         """方案A：顶部 Hero 条，包含标题、副标题和开始转换按钮"""
         hero = QFrame()
-        hero.setFixedHeight(76)
-        # 改为更柔和的浅色单色背景，避免突兀渐变
-        hero.setStyleSheet("""
-            QFrame {
-                background-color: #E8F5E9; /* 淡绿背景 */
-                border-bottom: 1px solid #e5e5e5;
-            }
-        """)
+        hero.setFixedHeight(56)
+        # 使用 tokens 的 surfaceMuted，避免大面积绿色
+        self.hero_frame = hero
         layout = QHBoxLayout()
         layout.setContentsMargins(16, 12, 16, 12)
         layout.setSpacing(16)
 
         title = QLabel("Markdown 图片一键压缩为 WebP")
-        title.setStyleSheet("""
-            QLabel { color: #065f46; font-size: 18px; font-weight: 700; }
-        """)
+        self.hero_title_label = title
 
         subtitle = QLabel("粘贴或打开 Markdown，右侧调质量，点击开始转换")
-        subtitle.setStyleSheet("""
-            QLabel { color: #0f766e; font-size: 12px; }
-        """)
+        self.hero_subtitle_label = subtitle
 
         text_block = QWidget()
         v = QVBoxLayout()
@@ -1021,19 +1100,7 @@ class Win11MainWindow(QMainWindow):
         start_btn = QPushButton("开始转换")
         start_btn.setFixedHeight(36)
         start_btn.setFixedWidth(120)
-        start_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #16a34a;
-                color: #ffffff;
-                border: 1px solid #16a34a;
-                border-radius: 6px;
-                font-size: 14px;
-                font-weight: 600;
-                padding: 6px 16px;
-            }
-            QPushButton:hover { background-color: #15803d; border-color: #15803d; }
-            QPushButton:pressed { background-color: #166534; border-color: #166534; }
-        """)
+        # 样式由 tokens 注入
         start_btn.clicked.connect(self.on_convert_clicked)
 
         layout.addWidget(text_block, 1)
@@ -1046,19 +1113,11 @@ class Win11MainWindow(QMainWindow):
         """方案A：底部吸附提示条，引导拖拽/粘贴"""
         bar = QFrame()
         bar.setFixedHeight(34)
-        bar.setStyleSheet("""
-            QFrame {
-                background-color: #f8fafc;
-                border-top: 1px solid #e5e5e5;
-            }
-        """)
         layout = QHBoxLayout()
         layout.setContentsMargins(12, 6, 12, 6)
         layout.setSpacing(8)
         hint = QLabel("提示：可拖拽 Markdown 文件进来，或直接 Ctrl+V 粘贴内容")
-        hint.setStyleSheet("""
-            QLabel { color: #334155; font-size: 12px; }
-        """)
+        self.hint_label = hint
         layout.addWidget(hint)
         layout.addStretch()
         bar.setLayout(layout)
@@ -1067,42 +1126,9 @@ class Win11MainWindow(QMainWindow):
     def setup_menu_bar(self):
         """设置Win11风格菜单栏"""
         menubar = self.menuBar()
-        menubar.setStyleSheet("""
-            QMenuBar {
-                background-color: #f9f9f9;
-                color: #323130;
-                border-bottom: 1px solid #e5e5e5;
-                font-family: 'Segoe UI';
-                font-size: 13px;
-                padding: 4px;
-            }
-            QMenuBar::item {
-                background: transparent;
-                padding: 8px 16px;
-                border-radius: 4px;
-            }
-            QMenuBar::item:selected {
-                background-color: #f3f2f1;
-            }
-            QMenuBar::item:pressed {
-                background-color: #edebe9;
-            }
-        """)
-        
-        # 文件菜单
-        file_menu = menubar.addMenu("文件")
-        
-        # 编辑菜单
-        edit_menu = menubar.addMenu("编辑")
-        
-        # 视图菜单
-        view_menu = menubar.addMenu("视图")
-        
-        # 工具菜单
-        tools_menu = menubar.addMenu("工具")
-        
-        # 帮助菜单
-        help_menu = menubar.addMenu("帮助")
+        # 直接隐藏菜单栏（去掉“文件/编辑/视图/工具/帮助”）
+        menubar.hide()
+        return
 
     def create_toolbar(self):
         """顶端工具栏：右侧加入主题切换图标"""
