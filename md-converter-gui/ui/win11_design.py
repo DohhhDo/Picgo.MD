@@ -396,13 +396,8 @@ class Win11ControlPanel(QWidget):
         layout.setSpacing(12)
         
         # 标题
-        title = QLabel("转换进度")
-        title.setStyleSheet(self.get_label_style("16px", "600") + """
-            QLabel {
-                margin-bottom: 4px;
-            }
-        """)
-        layout.addWidget(title)
+        self.progress_title = QLabel("转换进度")
+        layout.addWidget(self.progress_title)
         
         # Win11风格进度条（统一绿色系）
         progress_container = QWidget()
@@ -415,9 +410,7 @@ class Win11ControlPanel(QWidget):
         # 进度条背景（去边框，浅绿色背景）
         self.progress_bg = QWidget()
         self.progress_bg.setFixedHeight(6)
-        self.progress_bg.setStyleSheet("""
-            QWidget { background-color: #e2f7ec; border-radius: 3px; }
-        """)
+        # 背景与文字样式在创建后统一由 _apply_progress_styles 控制
         
         # 进度条填充
         self.progress_fill = QWidget(self.progress_bg)
@@ -429,12 +422,8 @@ class Win11ControlPanel(QWidget):
         
         # 进度文本
         self.progress_text = QLabel("准备就绪")
-        self.progress_text.setStyleSheet("""
-            QLabel {
-                font-size: 12px;
-                color: #166534;
-            }
-        """)
+        # 初始样式
+        self._apply_progress_styles(self.is_dark_theme)
         self.progress_text.setAlignment(Qt.AlignmentFlag.AlignCenter)
         
         progress_layout.addWidget(self.progress_bg)
@@ -445,6 +434,23 @@ class Win11ControlPanel(QWidget):
         card.setLayout(layout)
         
         return card
+
+    def _apply_progress_styles(self, dark: bool):
+        """根据主题更新“转换进度”区域的颜色样式"""
+        if dark:
+            if hasattr(self, 'progress_title'):
+                self.progress_title.setStyleSheet("QLabel{color:#E5E7EB;font-size:16px;font-weight:600;margin-bottom:4px;}")
+            if hasattr(self, 'progress_bg'):
+                self.progress_bg.setStyleSheet("QWidget { background-color: #1F2937; border-radius: 3px; }")
+            if hasattr(self, 'progress_text'):
+                self.progress_text.setStyleSheet("QLabel{font-size:12px;color:#E5E7EB;}")
+        else:
+            if hasattr(self, 'progress_title'):
+                self.progress_title.setStyleSheet("QLabel{color:#065f46;font-size:16px;font-weight:600;margin-bottom:4px;}")
+            if hasattr(self, 'progress_bg'):
+                self.progress_bg.setStyleSheet("QWidget { background-color: #e2f7ec; border-radius: 3px; }")
+            if hasattr(self, 'progress_text'):
+                self.progress_text.setStyleSheet("QLabel{font-size:12px;color:#065f46;}")
     
     def create_preset_card(self):
         """创建预设配置卡片"""
@@ -846,7 +852,8 @@ class Win11MainWindow(QMainWindow):
         
         # 主容器布局
         container_layout = QVBoxLayout()
-        container_layout.setContentsMargins(0, 0, 0, 0)
+        # 底部预留间隙，使内容区与状态栏之间有缓冲（颜色同窗口背景）
+        container_layout.setContentsMargins(0, 0, 0, 8)
         container_layout.setSpacing(0)
         
         # Win11风格菜单栏
@@ -961,6 +968,9 @@ class Win11MainWindow(QMainWindow):
             self.update_icons(True)
             # 应用 tokens 到右栏
             self.control_panel.apply_tokens(tokens)
+            # 同步“转换进度”区域颜色
+            if hasattr(self, 'control_panel') and hasattr(self.control_panel, '_apply_progress_styles'):
+                self.control_panel._apply_progress_styles(True)
             # Hero 颜色与按钮样式
             if hasattr(self, 'hero_frame'):
                 self.hero_frame.setStyleSheet("QFrame{background-color:#111827;}")
@@ -984,12 +994,17 @@ class Win11MainWindow(QMainWindow):
                     QPushButton:pressed { background-color: #166534; border-color: #166534; }
                     """
                 )
-            # 底部状态栏与提示条同步深色
+            # 底部状态栏与整体背景保持一致的深色
             if hasattr(self, 'status_bar'):
                 # 去除状态栏顶部分割线
                 self.status_bar.setStyleSheet(
-                    "QStatusBar{background-color:#0F141A;color:#E6EAF0;padding:4px 16px;font-size:12px;}"
+                    "QStatusBar{background-color:#0f172a;color:#E6EAF0;padding:4px 16px;font-size:12px;}"
                 )
+                # 明确设置状态栏上的文本颜色
+                if hasattr(self, 'status_label'):
+                    self.status_label.setStyleSheet("QLabel{color:#E6EAF0;}")
+                if hasattr(self, 'context_label'):
+                    self.context_label.setStyleSheet("QLabel{color:#E6EAF0;}")
             # 分割线更暗，避免过亮
             if hasattr(self, 'splitter'):
                 # 隐藏分割线
@@ -1008,9 +1023,9 @@ class Win11MainWindow(QMainWindow):
             }
             # 浅色
             self.setStyleSheet("""
-                QMainWindow { background-color: #ffffff; }
-                QMenuBar { background-color: #f9f9f9; color: #323130; }
-                QMenuBar::item:selected { background-color: #f3f2f1; }
+                QMainWindow { background-color: #E8F5E9; }
+                QMenuBar { background-color: #E8F5E9; color: #065f46; }
+                QMenuBar::item:selected { background-color: #DCFCE7; }
             """)
             self.editor.is_dark_theme = False
             self.editor.apply_theme_style()
@@ -1030,6 +1045,9 @@ class Win11MainWindow(QMainWindow):
             self.update_icons(False)
             # 应用 tokens 到右栏
             self.control_panel.apply_tokens(tokens)
+            # 同步“转换进度”区域颜色
+            if hasattr(self, 'control_panel') and hasattr(self.control_panel, '_apply_progress_styles'):
+                self.control_panel._apply_progress_styles(False)
             # Hero 颜色与按钮样式
             if hasattr(self, 'hero_frame'):
                 self.hero_frame.setStyleSheet("QFrame{background-color:#E8F5E9;}")
@@ -1053,11 +1071,16 @@ class Win11MainWindow(QMainWindow):
                     QPushButton:pressed { background-color: #166534; border-color: #166534; }
                     """
                 )
-            # 底部状态栏浅色
+            # 底部状态栏：亮色模式下背景与整体保持一致的浅绿，文字深色
             if hasattr(self, 'status_bar'):
                 self.status_bar.setStyleSheet(
-                    "QStatusBar{background-color:#FFFFFF;color:#605e5c;padding:4px 16px;font-size:12px;}"
+                    "QStatusBar{background-color:#E8F5E9;color:#065f46;padding:4px 16px;font-size:12px;}"
                 )
+                # 明确设置状态栏上的文本颜色
+                if hasattr(self, 'status_label'):
+                    self.status_label.setStyleSheet("QLabel{color:#065f46;}")
+                if hasattr(self, 'context_label'):
+                    self.context_label.setStyleSheet("QLabel{color:#065f46;}")
             # 分割线更柔和
             if hasattr(self, 'splitter'):
                 self.splitter.setStyleSheet("QSplitter::handle{background-color:transparent;}")
@@ -1541,7 +1564,8 @@ class Win11MainWindow(QMainWindow):
         if not hasattr(self, 'imagebed_dialog'):
             self.imagebed_dialog = ImageBedDialog(self)
             # 主题随窗口刷新
-            self.imagebed_dialog.apply_theme(self.current_theme_dark)
+            # 图床设置弹窗固定使用深色主题
+            self.imagebed_dialog.apply_theme(True)
         self.imagebed_dialog.show()
         self.imagebed_dialog.raise_()
         self.imagebed_dialog.activateWindow()
