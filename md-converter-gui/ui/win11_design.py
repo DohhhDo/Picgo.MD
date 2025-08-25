@@ -9,10 +9,10 @@ from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
     QSplitter, QLabel, QPushButton, QSlider, QGridLayout, 
     QFrame, QTextEdit, QFileDialog, QMessageBox, QToolButton,
-    QSizePolicy, QApplication, QGraphicsDropShadowEffect
+    QSizePolicy, QApplication, QGraphicsDropShadowEffect, QToolBar
 )
 from PyQt6.QtCore import Qt, QTimer, QSize, pyqtSignal, QSettings, QRect, QPoint, QPropertyAnimation, QEasingCurve, QThread
-from PyQt6.QtGui import QFont, QAction, QPalette, QColor, QPixmap, QPainter, QScreen, QCursor
+from PyQt6.QtGui import QFont, QAction, QPalette, QColor, QPixmap, QPainter, QScreen, QCursor, QIcon
 import sys
 import os
 from pathlib import Path
@@ -26,6 +26,12 @@ try:
 except ImportError:
     print("Warning: 无法导入图片转换模块")
     convert_markdown_images = None
+
+# FontAwesome 图标支持（qtawesome）
+try:
+    import qtawesome as qta
+except Exception:
+    qta = None
 
 class ConversionWorker(QThread):
     """图片转换工作线程"""
@@ -184,7 +190,7 @@ class Win11ControlPanel(QWidget):
             return False  # 默认浅色主题
     
     def setup_ui(self):
-        self.setFixedWidth(280)  # Win11推荐的侧边栏宽度
+        self.setFixedWidth(260)  # 方案A：更纤细的侧栏宽度
         
         # 应用主题样式
         self.apply_panel_theme()
@@ -194,35 +200,31 @@ class Win11ControlPanel(QWidget):
         main_layout.setSpacing(16)
         main_layout.setContentsMargins(20, 20, 20, 20)
         
-        # 转换按钮 - 真实Win11按钮样式
+        # 转换按钮 - 方案A：主按钮置顶，随滚动始终可见
         self.convert_btn = QPushButton("转换")
-        self.convert_btn.setFixedHeight(32)
+        self.convert_btn.setFixedHeight(44)
+        self.convert_btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.convert_btn.setStyleSheet("""
             QPushButton {
-                background-color: #0067b8;
+                background-color: #16a34a; /* Primary */
                 color: white;
-                border: 1px solid #0067b8;
-                border-radius: 2px;
-                font-size: 14px;
+                border: 1px solid #16a34a;
+                border-radius: 6px;
+                font-size: 15px;
                 font-family: 'Microsoft YaHei';
-                padding: 6px 20px;
+                font-weight: 600;
+                padding: 8px 14px;
             }
             QPushButton:hover {
-                background-color: #106ebe;
-                border-color: #106ebe;
+                background-color: #15803d;
+                border-color: #15803d;
             }
             QPushButton:pressed {
-                background-color: #005a9e;
-                border-color: #005a9e;
+                background-color: #166534;
+                border-color: #166534;
             }
         """)
         main_layout.addWidget(self.convert_btn)
-        
-        # 分隔线
-        separator = QFrame()
-        separator.setFrameShape(QFrame.Shape.HLine)
-        separator.setStyleSheet("QFrame { color: #333333; }")
-        main_layout.addWidget(separator)
         
         # 图片质量设置卡片
         quality_card = self.create_quality_card()
@@ -231,14 +233,6 @@ class Win11ControlPanel(QWidget):
         # 进度显示卡片
         progress_card = self.create_progress_card()
         main_layout.addWidget(progress_card)
-        
-        # 压缩统计卡片
-        stats_card = self.create_stats_card()
-        main_layout.addWidget(stats_card)
-        
-        # 预设网格
-        presets_card = self.create_preset_card()
-        main_layout.addWidget(presets_card)
         
         # 弹性空间
         main_layout.addStretch()
@@ -303,14 +297,10 @@ class Win11ControlPanel(QWidget):
         """创建图片质量设置卡片"""
         card = QFrame()
         card.setFrameStyle(QFrame.Shape.NoFrame)
-        card.setStyleSheet(self.get_card_style())
-        
-        # 添加阴影效果
-        shadow = QGraphicsDropShadowEffect()
-        shadow.setBlurRadius(10)
-        shadow.setColor(QColor(0, 0, 0, 30))
-        shadow.setOffset(0, 2)
-        card.setGraphicsEffect(shadow)
+        # 取消卡片边框与阴影，弱化分隔，减少“小框线”感
+        card.setStyleSheet("""
+            QFrame { background-color: transparent; border: none; }
+        """)
         
         layout = QVBoxLayout()
         layout.setContentsMargins(16, 16, 16, 16)
@@ -318,21 +308,15 @@ class Win11ControlPanel(QWidget):
         
         # 标题
         title = QLabel("图片质量")
-        title.setStyleSheet(self.get_label_style("16px", "600") + """
-            QLabel {
-                margin-bottom: 4px;
-            }
+        title.setStyleSheet("""
+            QLabel { font-size: 14px; font-weight: 700; color: #166534; }
         """)
         layout.addWidget(title)
         
         # 描述
         desc = QLabel("调整WebP压缩质量")
         desc.setStyleSheet("""
-            QLabel {
-                font-size: 12px;
-                color: #605e5c;
-                margin-bottom: 8px;
-            }
+            QLabel { font-size: 12px; color: #475569; margin-bottom: 6px; }
         """)
         layout.addWidget(desc)
         
@@ -346,25 +330,10 @@ class Win11ControlPanel(QWidget):
         self.quality_slider.setValue(self.quality_value)
         self.quality_slider.setFixedHeight(24)
         self.quality_slider.setStyleSheet("""
-            QSlider::groove:horizontal {
-                background: #dfe1e6;
-                height: 4px;
-                border-radius: 2px;
-            }
-            QSlider::handle:horizontal {
-                background: #16a34a; /* 绿色强调 */
-                width: 20px;
-                height: 20px;
-                border-radius: 10px;
-                margin: -8px 0;
-            }
-            QSlider::handle:horizontal:hover {
-                background: #15803d;
-            }
-            QSlider::sub-page:horizontal {
-                background: #16a34a;
-                border-radius: 2px;
-            }
+            QSlider::groove:horizontal { background: #d1fae5; height: 4px; border-radius: 2px; }
+            QSlider::sub-page:horizontal { background: #16a34a; border-radius: 2px; }
+            QSlider::handle:horizontal { background: #16a34a; width: 18px; height: 18px; border-radius: 9px; margin: -7px 0; }
+            QSlider::handle:horizontal:hover { background: #15803d; }
         """)
         
         # 数值显示
@@ -390,6 +359,41 @@ class Win11ControlPanel(QWidget):
         control_layout.addWidget(self.quality_label)
         
         layout.addLayout(control_layout)
+        
+        # 轻量预设 Chips（中文标签：极缩/常规/轻压/无损）
+        chips_grid = QGridLayout()
+        chips_grid.setContentsMargins(0, 0, 0, 0)
+        chips_grid.setHorizontalSpacing(10)
+        chips_grid.setVerticalSpacing(8)
+        self.preset_chip_buttons = []
+        self.preset_chip_value = {}
+        chip_configs = [("极缩", 30), ("常规", 73), ("轻压", 90), ("无损", 100)]
+        for i, (label, val) in enumerate(chip_configs):
+            chip = QPushButton(label)
+            chip.setFixedHeight(30)
+            chip.setMinimumWidth(72)
+            chip.setCursor(Qt.CursorShape.PointingHandCursor)
+            chip.setStyleSheet("""
+                QPushButton {
+                    background-color: #f8fafc;
+                    color: #166534;
+                    border: 1px solid #d1fae5;
+                    border-radius: 15px;
+                    padding: 2px 12px;
+                    font-size: 12px;
+                    font-weight: 600;
+                }
+                QPushButton:hover { background-color: #ecfdf5; }
+                QPushButton:pressed { background-color: #dcfce7; }
+            """)
+            chip.clicked.connect(lambda checked, v=val: self.set_quality_preset(v))
+            self.preset_chip_buttons.append(chip)
+            self.preset_chip_value[chip] = val
+            row, col = divmod(i, 2)  # 两行两列
+            chips_grid.addWidget(chip, row, col)
+        layout.addLayout(chips_grid)
+        # 初始化选中态
+        self.update_preset_button_states(self.quality_value)
         card.setLayout(layout)
         
         return card
@@ -398,14 +402,10 @@ class Win11ControlPanel(QWidget):
         """创建进度显示卡片"""
         card = QFrame()
         card.setFrameStyle(QFrame.Shape.NoFrame)
-        card.setStyleSheet(self.get_card_style())
-        
-        # 添加阴影效果
-        shadow = QGraphicsDropShadowEffect()
-        shadow.setBlurRadius(10)
-        shadow.setColor(QColor(0, 0, 0, 30))
-        shadow.setOffset(0, 2)
-        card.setGraphicsEffect(shadow)
+        # 取消卡片边框与阴影
+        card.setStyleSheet("""
+            QFrame { background-color: transparent; border: none; }
+        """)
         
         layout = QVBoxLayout()
         layout.setContentsMargins(16, 16, 16, 16)
@@ -420,7 +420,7 @@ class Win11ControlPanel(QWidget):
         """)
         layout.addWidget(title)
         
-        # Win11风格进度条
+        # Win11风格进度条（统一绿色系）
         progress_container = QWidget()
         progress_container.setFixedHeight(60)
         
@@ -428,25 +428,19 @@ class Win11ControlPanel(QWidget):
         progress_layout.setContentsMargins(0, 0, 0, 0)
         progress_layout.setSpacing(8)
         
-        # 进度条背景
+        # 进度条背景（去边框，浅绿色背景）
         self.progress_bg = QWidget()
-        self.progress_bg.setFixedHeight(8)
+        self.progress_bg.setFixedHeight(6)
         self.progress_bg.setStyleSheet("""
-            QWidget {
-                background-color: #dfe1e6;
-                border-radius: 4px;
-            }
+            QWidget { background-color: #e2f7ec; border-radius: 3px; }
         """)
         
         # 进度条填充
         self.progress_fill = QWidget(self.progress_bg)
-        self.progress_fill.setFixedHeight(8)
+        self.progress_fill.setFixedHeight(6)
         self.progress_fill.setFixedWidth(0)  # 初始宽度为0
         self.progress_fill.setStyleSheet("""
-            QWidget {
-                background-color: #16a34a;
-                border-radius: 4px;
-            }
+            QWidget { background-color: #16a34a; border-radius: 3px; }
         """)
         
         # 进度文本
@@ -454,7 +448,7 @@ class Win11ControlPanel(QWidget):
         self.progress_text.setStyleSheet("""
             QLabel {
                 font-size: 12px;
-                color: #667085;
+                color: #166534;
             }
         """)
         self.progress_text.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -638,10 +632,10 @@ class Win11ControlPanel(QWidget):
                     }
                 """)
         
-        # 更新其他预设按钮状态
+        # 更新其他预设按钮状态（旧网格按钮）
         preset_values = [90, 73, 50, 30]
-        for i, btn in enumerate(self.preset_buttons):
-            if preset_values[i] == selected_quality and selected_quality != 100:
+        for i, btn in enumerate(getattr(self, 'preset_buttons', [])):
+            if i < len(preset_values) and preset_values[i] == selected_quality and selected_quality != 100:
                 # 选中状态
                 btn.setStyleSheet("""
                     QPushButton {
@@ -678,6 +672,38 @@ class Win11ControlPanel(QWidget):
                     QPushButton:pressed {
                         background-color: #e2e8f0;
                     }
+                """)
+        
+        # 更新轻量预设 Chips 选中状态
+        for chip in getattr(self, 'preset_chip_buttons', []):
+            value = getattr(self, 'preset_chip_value', {}).get(chip, None)
+            if value is None:
+                continue
+            if value == selected_quality:
+                chip.setStyleSheet("""
+                    QPushButton {
+                        background-color: #dcfce7;
+                        color: #166534;
+                        border: 2px solid #16a34a;
+                        border-radius: 14px;
+                        padding: 2px 10px;
+                        font-size: 12px;
+                        font-weight: 700;
+                    }
+                """)
+            else:
+                chip.setStyleSheet("""
+                    QPushButton {
+                        background-color: #f8fafc;
+                        color: #166534;
+                        border: 1px solid #d1fae5;
+                        border-radius: 14px;
+                        padding: 2px 10px;
+                        font-size: 12px;
+                        font-weight: 600;
+                    }
+                    QPushButton:hover { background-color: #ecfdf5; }
+                    QPushButton:pressed { background-color: #dcfce7; }
                 """)
     
     def create_stats_card(self):
@@ -762,6 +788,9 @@ class Win11ControlPanel(QWidget):
     
     def update_compression_stats(self, stats):
         """更新压缩统计信息"""
+        # 方案A：右侧仅保留质量与进度。若统计控件不存在，则直接跳过更新。
+        if not hasattr(self, 'original_size_label'):
+            return
         def format_size(size_bytes):
             """格式化文件大小"""
             if size_bytes == 0:
@@ -785,10 +814,11 @@ class Win11ControlPanel(QWidget):
     
     def reset_compression_stats(self):
         """重置压缩统计信息"""
-        self.original_size_label.setText("原始大小: --")
-        self.compressed_size_label.setText("压缩后: --")
-        self.saved_size_label.setText("节省空间: --")
-        self.compression_ratio_label.setText("压缩比例: --")
+        if hasattr(self, 'original_size_label'):
+            self.original_size_label.setText("原始大小: --")
+            self.compressed_size_label.setText("压缩后: --")
+            self.saved_size_label.setText("节省空间: --")
+            self.compression_ratio_label.setText("压缩比例: --")
     
     def on_quality_changed(self, value):
         """质量滑块值改变"""
@@ -844,6 +874,10 @@ class Win11MainWindow(QMainWindow):
         
         # Win11风格菜单栏
         self.setup_menu_bar()
+
+        # 顶部 Hero 区（方案A）：价值主张 + 大按钮
+        hero = self.create_hero_bar()
+        container_layout.addWidget(hero)
         
         # 创建内容区域
         content_widget = QWidget()
@@ -875,18 +909,160 @@ class Win11MainWindow(QMainWindow):
         content_layout.addWidget(self.splitter)
         content_widget.setLayout(content_layout)
         container_layout.addWidget(content_widget)
+
+        # 底部吸附提示条
+        hint_bar = self.create_bottom_hint_bar()
+        container_layout.addWidget(hint_bar)
         
         main_container.setLayout(container_layout)
         
         # 连接信号
         self.control_panel.convert_btn.clicked.connect(self.on_convert_clicked)
         
-        # 设置Win11主题样式
-        self.setStyleSheet("""
-            QMainWindow {
-                background-color: #ffffff;
+        # 工具栏（右上角主题切换图标）
+        self.create_toolbar()
+
+        # 设置主题样式（支持明暗切换，读取上次选择）
+        self.current_theme_dark = self.settings.value("themeDark", False, type=bool)
+        self.apply_theme(self.current_theme_dark)
+
+    def apply_theme(self, dark: bool):
+        """根据主题开关设置全局与局部样式"""
+        if dark:
+            # 深色
+            self.setStyleSheet("""
+                QMainWindow { background-color: #0f172a; }
+                QMenuBar { background-color: #111827; color: #e5e7eb; border: none; }
+                QMenuBar::item:selected { background-color: #1f2937; }
+            """)
+            # 编辑器深色
+            self.editor.is_dark_theme = True
+            self.editor.apply_theme_style()
+            # 控制面板深色
+            self.control_panel.is_dark_theme = True
+            self.control_panel.apply_panel_theme()
+            # 更新内部控件色值
+            self.control_panel.progress_text.setStyleSheet("QLabel{color:#e5e7eb;font-size:12px;}")
+            # 顶部Hero与底部提示
+            if hasattr(self, 'hero_frame'):
+                self.hero_frame.setStyleSheet("QFrame{background-color:#111827;border-bottom:1px solid #1f2937;}")
+            if hasattr(self, 'hero_title_label'):
+                self.hero_title_label.setStyleSheet("QLabel{color:#f9fafb;font-size:18px;font-weight:700;}")
+            if hasattr(self, 'hero_subtitle_label'):
+                self.hero_subtitle_label.setStyleSheet("QLabel{color:#9ca3af;font-size:12px;}")
+            if hasattr(self, 'hint_bar'):
+                self.hint_bar.setStyleSheet("QFrame{background-color:#0b1220;border-top:1px solid #1f2937;}")
+            if hasattr(self, 'hint_label'):
+                self.hint_label.setStyleSheet("QLabel{color:#94a3b8;font-size:12px;}")
+            self.update_icons(True)
+        else:
+            # 浅色
+            self.setStyleSheet("""
+                QMainWindow { background-color: #ffffff; }
+                QMenuBar { background-color: #f9f9f9; color: #323130; border-bottom: 1px solid #e5e5e5; }
+                QMenuBar::item:selected { background-color: #f3f2f1; }
+            """)
+            self.editor.is_dark_theme = False
+            self.editor.apply_theme_style()
+            self.control_panel.is_dark_theme = False
+            self.control_panel.apply_panel_theme()
+            self.control_panel.progress_text.setStyleSheet("QLabel{color:#166534;font-size:12px;}")
+            if hasattr(self, 'hero_frame'):
+                self.hero_frame.setStyleSheet("QFrame{background-color:#E8F5E9;border-bottom:1px solid #e5e5e5;}")
+            if hasattr(self, 'hero_title_label'):
+                self.hero_title_label.setStyleSheet("QLabel{color:#065f46;font-size:18px;font-weight:700;}")
+            if hasattr(self, 'hero_subtitle_label'):
+                self.hero_subtitle_label.setStyleSheet("QLabel{color:#0f766e;font-size:12px;}")
+            if hasattr(self, 'hint_bar'):
+                self.hint_bar.setStyleSheet("QFrame{background-color:#f8fafc;border-top:1px solid #e5e5e5;}")
+            if hasattr(self, 'hint_label'):
+                self.hint_label.setStyleSheet("QLabel{color:#334155;font-size:12px;}")
+            self.update_icons(False)
+        # 重新渲染质量/预设等控件样式
+        self.control_panel.update_preset_button_states(self.control_panel.quality_value)
+        # 更新工具栏图标
+        if hasattr(self, 'theme_action'):
+            self.theme_action.setText('☀️' if dark else '🌙')
+            self.theme_action.setToolTip('切换到浅色' if dark else '切换到深色')
+
+    def create_hero_bar(self) -> QWidget:
+        """方案A：顶部 Hero 条，包含标题、副标题和开始转换按钮"""
+        hero = QFrame()
+        hero.setFixedHeight(76)
+        # 改为更柔和的浅色单色背景，避免突兀渐变
+        hero.setStyleSheet("""
+            QFrame {
+                background-color: #E8F5E9; /* 淡绿背景 */
+                border-bottom: 1px solid #e5e5e5;
             }
         """)
+        layout = QHBoxLayout()
+        layout.setContentsMargins(16, 12, 16, 12)
+        layout.setSpacing(16)
+
+        title = QLabel("Markdown 图片一键压缩为 WebP")
+        title.setStyleSheet("""
+            QLabel { color: #065f46; font-size: 18px; font-weight: 700; }
+        """)
+
+        subtitle = QLabel("粘贴或打开 Markdown，右侧调质量，点击开始转换")
+        subtitle.setStyleSheet("""
+            QLabel { color: #0f766e; font-size: 12px; }
+        """)
+
+        text_block = QWidget()
+        v = QVBoxLayout()
+        v.setContentsMargins(0, 0, 0, 0)
+        v.setSpacing(4)
+        v.addWidget(title)
+        v.addWidget(subtitle)
+        text_block.setLayout(v)
+
+        start_btn = QPushButton("开始转换")
+        start_btn.setFixedHeight(36)
+        start_btn.setFixedWidth(120)
+        start_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #16a34a;
+                color: #ffffff;
+                border: 1px solid #16a34a;
+                border-radius: 6px;
+                font-size: 14px;
+                font-weight: 600;
+                padding: 6px 16px;
+            }
+            QPushButton:hover { background-color: #15803d; border-color: #15803d; }
+            QPushButton:pressed { background-color: #166534; border-color: #166534; }
+        """)
+        start_btn.clicked.connect(self.on_convert_clicked)
+
+        layout.addWidget(text_block, 1)
+        layout.addStretch()
+        layout.addWidget(start_btn, 0, Qt.AlignmentFlag.AlignVCenter)
+        hero.setLayout(layout)
+        return hero
+
+    def create_bottom_hint_bar(self) -> QWidget:
+        """方案A：底部吸附提示条，引导拖拽/粘贴"""
+        bar = QFrame()
+        bar.setFixedHeight(34)
+        bar.setStyleSheet("""
+            QFrame {
+                background-color: #f8fafc;
+                border-top: 1px solid #e5e5e5;
+            }
+        """)
+        layout = QHBoxLayout()
+        layout.setContentsMargins(12, 6, 12, 6)
+        layout.setSpacing(8)
+        hint = QLabel("提示：可拖拽 Markdown 文件进来，或直接 Ctrl+V 粘贴内容")
+        hint.setStyleSheet("""
+            QLabel { color: #334155; font-size: 12px; }
+        """)
+        layout.addWidget(hint)
+        layout.addStretch()
+        bar.setLayout(layout)
+        return bar
     
     def setup_menu_bar(self):
         """设置Win11风格菜单栏"""
@@ -927,6 +1103,40 @@ class Win11MainWindow(QMainWindow):
         
         # 帮助菜单
         help_menu = menubar.addMenu("帮助")
+
+    def create_toolbar(self):
+        """顶端工具栏：右侧加入主题切换图标"""
+        toolbar = QToolBar("toolbar")
+        toolbar.setMovable(False)
+        toolbar.setFloatable(False)
+        toolbar.setIconSize(QSize(18, 18))
+        toolbar.setStyleSheet("QToolBar{background:transparent;border:0px;padding:0px 6px;}")
+        self.addToolBar(Qt.ToolBarArea.TopToolBarArea, toolbar)
+
+        # 左侧常用动作
+        self.open_action = QAction("打开", self)
+        self.open_action.setStatusTip("打开 Markdown 文件")
+        self.open_action.triggered.connect(self.open_markdown_file)
+        toolbar.addAction(self.open_action)
+
+        self.paste_action = QAction("粘贴", self)
+        self.paste_action.setStatusTip("从剪贴板粘贴 Markdown")
+        self.paste_action.triggered.connect(self.paste_from_clipboard)
+        toolbar.addAction(self.paste_action)
+
+        self.clear_action = QAction("清空", self)
+        self.clear_action.setStatusTip("清空编辑器")
+        self.clear_action.triggered.connect(self.clear_editor)
+        toolbar.addAction(self.clear_action)
+
+        spacer = QWidget()  # 拉伸把右侧图标推到最右
+        spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        toolbar.addWidget(spacer)
+
+        self.theme_action = QAction('🌙', self)
+        self.theme_action.setToolTip('切换到深色')
+        self.theme_action.triggered.connect(self.toggle_theme)
+        toolbar.addAction(self.theme_action)
     
     def setup_status_bar(self):
         """设置Win11风格状态栏"""
@@ -987,6 +1197,58 @@ class Win11MainWindow(QMainWindow):
         """窗口关闭事件"""
         self.save_window_state()
         event.accept()
+
+    def toggle_theme(self):
+        """切换浅色/深色主题"""
+        self.current_theme_dark = not self.current_theme_dark
+        self.apply_theme(self.current_theme_dark)
+        # 持久化
+        self.settings.setValue("themeDark", self.current_theme_dark)
+
+    # ===== 额外功能：文件/粘贴/清空 =====
+    def open_markdown_file(self):
+        path, _ = QFileDialog.getOpenFileName(self, "打开 Markdown", os.getcwd(), "Markdown (*.md *.markdown);;所有文件 (*.*)")
+        if not path:
+            return
+        try:
+            with open(path, 'r', encoding='utf-8') as f:
+                text = f.read()
+        except Exception:
+            with open(path, 'r', encoding='gbk', errors='ignore') as f:
+                text = f.read()
+        self.editor.setPlainText(text)
+        self.current_file = path
+        self.status_label.setText(f"已打开: {os.path.basename(path)}")
+
+    def paste_from_clipboard(self):
+        cb = QApplication.clipboard()
+        text = cb.text()
+        if text:
+            self.editor.insertPlainText(text)
+            self.status_label.setText("已粘贴剪贴板内容")
+
+    def clear_editor(self):
+        self.editor.clear()
+        self.status_label.setText("编辑器已清空")
+
+    def update_icons(self, dark: bool):
+        """根据主题更新 FontAwesome 图标（若可用）"""
+        if qta is None:
+            return
+        # 主题图标
+        theme_icon = qta.icon('fa5s.sun', color='#fde68a') if dark else qta.icon('fa5s.moon', color='#111827')
+        self.theme_action.setIcon(theme_icon)
+        # 工具栏图标
+        common_color = '#e5e7eb' if dark else '#111827'
+        if hasattr(self, 'open_action'):
+            self.open_action.setIcon(qta.icon('fa5s.folder-open', color=common_color))
+        if hasattr(self, 'paste_action'):
+            self.paste_action.setIcon(qta.icon('fa5s.paste', color=common_color))
+        if hasattr(self, 'clear_action'):
+            self.clear_action.setIcon(qta.icon('fa5s.trash-alt', color=common_color))
+        # 转换主按钮图标
+        self.control_panel.convert_btn.setIcon(qta.icon('fa5s.play', color='#ffffff'))
+        self.control_panel.convert_btn.setIconSize(QSize(16, 16))
     
     def on_convert_clicked(self):
         """转换按钮点击事件"""
