@@ -96,32 +96,58 @@ class WebPConverter:
             Optional[Tuple[输出路径, 原始大小, 转换后大小]]
         """
         try:
-            # 下载图片
-            response = requests.get(url, timeout=30)
-            response.raise_for_status()
-            
+            # 为部分站点添加常见请求头，避免被简单的反爬/热链保护拦截
+            headers = {
+                'User-Agent': (
+                    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
+                    'AppleWebKit/537.36 (KHTML, like Gecko) '
+                    'Chrome/124.0 Safari/537.36'
+                ),
+                'Accept': 'image/avif,image/webp,image/apng,image/*,*/*;q=0.8',
+                'Referer': 'https://www.google.com/',
+            }
+
+            # 先发起 GET（流式）并设置合理超时：连接 8s，读取 25s
+            resp = requests.get(url, headers=headers, timeout=(8, 25), stream=True, allow_redirects=True)
+            resp.raise_for_status()
+
+            # 简单校验内容类型
+            ctype = resp.headers.get('Content-Type', '')
+            if 'image' not in ctype.lower():
+                raise ValueError(f'非图片资源，Content-Type={ctype}')
+
+            # 限制最大下载大小（例如 15MB），防止超大图阻塞
+            max_bytes = 15 * 1024 * 1024
+            downloaded = 0
+
             # 生成临时文件名
             timestamp = time.strftime("%Y%m%d_%H%M%S", time.localtime())
             temp_name = f"img_{timestamp}_{random.randint(1000, 9999)}"
-            
-            # 保存临时文件
+
             with tempfile.NamedTemporaryFile(delete=False, suffix='.tmp') as temp_file:
-                temp_file.write(response.content)
+                for chunk in resp.iter_content(chunk_size=64 * 1024):
+                    if not chunk:
+                        continue
+                    downloaded += len(chunk)
+                    if downloaded > max_bytes:
+                        raise ValueError('图片超过 15MB，已取消')
+                    temp_file.write(chunk)
                 temp_path = temp_file.name
-            
-            # 转换为WebP
+
+            # 转换为 WebP
             output_path = os.path.join(output_dir, f"{temp_name}.webp")
-            
             success, original_size, converted_size = self.convert_to_webp(temp_path, output_path)
-            
+
             # 清理临时文件
-            os.unlink(temp_path)
-            
+            try:
+                os.unlink(temp_path)
+            except Exception:
+                pass
+
             if success:
                 return output_path, original_size, converted_size
-            else:
-                return None
-                
+            return None
+
         except Exception as e:
             print(f"下载和转换失败: {e}")
             return None
