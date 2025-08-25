@@ -1,0 +1,118 @@
+{
+  "name": "picgo",
+  "version": "2.4.0-beta.10",
+  "private": true,
+  "scripts": {
+    "build": "vue-cli-service electron:build",
+    "lint": "vue-cli-service lint",
+    "bump": "bump-version",
+    "cz": "git-cz",
+    "dev": "vue-cli-service electron:serve",
+    "electron:build": "vue-cli-service electron:build",
+    "electron:serve": "vue-cli-service electron:serve",
+    "gen-i18n": "node ./scripts/gen-i18n-types.js",
+    "lint:fix": "eslint --fix --ext .js,.jsx,.ts,.tsx,.vue src/",
+    "postinstall": "electron-builder install-app-deps",
+    "postuninstall": "electron-builder install-app-deps",
+    "release": "vue-cli-service electron:build --publish always",
+    "upload-dist": "node ./scripts/upload-dist.js",
+    "lint:dpdm": "dpdm -T --tsconfig ./tsconfig.json --no-tree --no-warning --exit-code circular:1 src/background.ts"
+  },
+  "dependencies": {
+    "@element-plus/icons-vue": "^2.0.10",
+    "@picgo/i18n": "^1.0.0",
+    "@picgo/store": "^2.1.0",
+    "axios": "^0.19.0",
+    "compare-versions": "^4.1.3",
+    "core-js": "^3.27.1",
+    "element-plus": "^2.3.7",
+    "epipebomb": "^1.0.0",
+    "fs-extra": "^10.0.0",
+    "js-yaml": "^4.1.0",
+    "keycode": "^2.2.0",
+    "lodash-id": "^0.14.0",
+    "lowdb": "^1.0.0",
+    "marked": "^7.0.4",
+    "mitt": "^3.0.0",
+    "multer": "^1.4.5-lts.1",
+    "picgo": "^1.5.9",
+    "qrcode.vue": "^3.3.3",
+    "shell-path": "2.1.0",
+    "uuid": "^9.0.0",
+    "vue": "^3.3.4",
+    "vue-router": "^4.2.2",
+    "vue3-lazyload": "^0.3.6",
+    "vue3-photo-preview": "^0.3.0",
+    "write-file-atomic": "^4.0.1"
+  },
+  "devDependencies": {
+    "@aws-sdk/client-s3": "^3.276.0",
+    "@aws-sdk/lib-storage": "^3.276.0",
+    "@babel/plugin-proposal-optional-chaining": "^7.16.7",
+    "@picgo/bump-version": "^1.1.2",
+    "@types/electron-devtools-installer": "^2.2.0",
+    "@types/fs-extra": "^9.0.13",
+    "@types/inquirer": "^6.5.0",
+    "@types/js-yaml": "^4.0.5",
+    "@types/lowdb": "^1.0.9",
+    "@types/multer": "^1.4.12",
+    "@types/node": "^16.10.2",
+    "@types/request-promise-native": "^1.0.17",
+    "@types/semver": "^7.3.8",
+    "@types/tunnel": "^0.0.3",
+    "@types/uuid": "^9.0.2",
+    "@types/write-file-atomic": "^4.0.0",
+    "@typescript-eslint/eslint-plugin": "^5.48.0",
+    "@typescript-eslint/parser": "^5.48.0",
+    "@vue/cli-plugin-babel": "^5.0.8",
+    "@vue/cli-plugin-eslint": "^5.0.8",
+    "@vue/cli-plugin-router": "^5.0.8",
+    "@vue/cli-plugin-typescript": "^5.0.8",
+    "@vue/cli-service": "^5.0.8",
+    "@vue/eslint-config-standard": "^8.0.1",
+    "@vue/eslint-config-typescript": "^11.0.2",
+    "@vue/runtime-dom": "^3.2.45",
+    "autoprefixer": "^10.4.14",
+    "conventional-changelog": "^3.1.18",
+    "cz-customizable": "^6.2.0",
+    "dotenv": "^16.0.1",
+    "dpdm": "^3.13.1",
+    "electron": "^16.0.6",
+    "electron-devtools-installer": "^3.2.0",
+    "eslint": "^8.31.0",
+    "eslint-config-standard": ">=16.0.0",
+    "eslint-plugin-import": "^2.24.2",
+    "eslint-plugin-node": "^11.1.0",
+    "eslint-plugin-promise": "^5.1.0",
+    "eslint-plugin-vue": "^9.8.0",
+    "husky": "^3.1.0",
+    "postcss": "^8.4.23",
+    "stylus": "^0.54.7",
+    "stylus-loader": "^3.0.2",
+    "tailwindcss": "^3.3.2",
+    "typescript": "^4.4.3",
+    "vue-cli-plugin-electron-builder": "^3.0.0-alpha.4"
+  },
+  "commitlint": {
+    "extends": [
+      "./node_modules/@picgo/bump-version/commitlint-picgo"
+    ]
+  },
+  "config": {
+    "commitizen": {
+      "path": "./node_modules/cz-customizable"
+    },
+    "cz-customizable": {
+      "config": "./node_modules/@picgo/bump-version/.cz-config.js"
+    }
+  },
+  "husky": {
+    "hooks": {
+      "commit-msg": "npm run lint:dpdm && commitlint -E HUSKY_GIT_PARAMS"
+    }
+  },
+  "resolutions": {
+    "@types/node": "^16.10.2",
+    "vue-cli-plugin-electron-builder/**/electron-builder": "23.3.3"
+  }
+}

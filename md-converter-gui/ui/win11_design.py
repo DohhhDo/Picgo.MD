@@ -9,7 +9,9 @@ from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
     QSplitter, QLabel, QPushButton, QSlider, QGridLayout, 
     QFrame, QTextEdit, QFileDialog, QMessageBox, QToolButton,
-    QSizePolicy, QApplication, QGraphicsDropShadowEffect, QToolBar
+    QSizePolicy, QApplication, QGraphicsDropShadowEffect, QToolBar,
+    QDialog, QTabWidget, QComboBox, QLineEdit, QCheckBox, QDialogButtonBox,
+    QScrollArea
 )
 from PyQt6.QtCore import Qt, QTimer, QSize, pyqtSignal, QSettings, QRect, QPoint, QPropertyAnimation, QEasingCurve, QThread
 from PyQt6.QtGui import QFont, QAction, QPalette, QColor, QPixmap, QPainter, QScreen, QCursor, QIcon
@@ -943,17 +945,15 @@ class Win11MainWindow(QMainWindow):
         # 创建内容区域
         content_widget = QWidget()
         content_layout = QHBoxLayout()
-        content_layout.setContentsMargins(0, 0, 0, 0)
+        # 让编辑器左侧与窗口留白（仅左边 12px）
+        content_layout.setContentsMargins(12, 0, 0, 0)
         content_layout.setSpacing(1)  # Win11分割线宽度
         
         # 创建分割器
         self.splitter = QSplitter(Qt.Orientation.Horizontal)
         self.splitter.setHandleWidth(1)
-        self.splitter.setStyleSheet("""
-            QSplitter::handle {
-                background-color: #e5e5e5;
-            }
-        """)
+        # 分割线颜色在主题中统一更新，这里设置默认较柔的浅色
+        self.splitter.setStyleSheet("QSplitter::handle{background-color:#e5e5e5;}")
         
         # 左侧编辑器
         self.editor = Win11MarkdownEditor()
@@ -981,12 +981,21 @@ class Win11MainWindow(QMainWindow):
         # 连接信号
         self.control_panel.convert_btn.clicked.connect(self.on_convert_clicked)
         
-        # 工具栏（右上角主题切换图标）
-        self.create_toolbar()
-
-        # 设置主题样式（支持明暗切换，读取上次选择）
-        self.current_theme_dark = self.settings.value("themeDark", False, type=bool)
+        # 跟随系统主题（不提供手动切换）
+        self.current_theme_dark = self.detect_system_theme()
         self.apply_theme(self.current_theme_dark)
+
+    def detect_system_theme(self) -> bool:
+        """检测系统主题：True=深色，False=浅色"""
+        try:
+            import winreg
+            registry = winreg.ConnectRegistry(None, winreg.HKEY_CURRENT_USER)
+            key = winreg.OpenKey(registry, r"SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize")
+            value, _ = winreg.QueryValueEx(key, "AppsUseLightTheme")
+            winreg.CloseKey(key)
+            return value == 0
+        except Exception:
+            return False
 
     def apply_theme(self, dark: bool):
         """根据主题开关设置全局与局部样式"""
@@ -1030,6 +1039,32 @@ class Win11MainWindow(QMainWindow):
             self.update_icons(True)
             # 应用 tokens 到右栏
             self.control_panel.apply_tokens(tokens)
+            # Hero 颜色与按钮样式
+            if hasattr(self, 'hero_frame'):
+                self.hero_frame.setStyleSheet("QFrame{background-color:#111827;border-bottom:1px solid #1f2937;}")
+            if hasattr(self, 'hero_title_label'):
+                self.hero_title_label.setStyleSheet("QLabel{color:#f9fafb;font-size:18px;font-weight:700;}")
+            if hasattr(self, 'hero_subtitle_label'):
+                self.hero_subtitle_label.setStyleSheet("QLabel{color:#9ca3af;font-size:12px;}")
+            for btn in [getattr(self,'hero_open_btn',None), getattr(self,'hero_paste_btn',None), getattr(self,'hero_clear_btn',None)]:
+                if btn is not None:
+                    btn.setStyleSheet("QToolButton{color:#E5E7EB;background:transparent;border:none;padding:2px 8px;} QToolButton:hover{background:#1f2937;border-radius:4px;}")
+            if hasattr(self, 'hero_start_btn'):
+                self.hero_start_btn.setStyleSheet(
+                    """
+                    QPushButton { background-color: #16a34a; color: #ffffff; border: 1px solid #16a34a; border-radius: 8px; font-size: 14px; font-weight: 600; padding: 6px 16px; }
+                    QPushButton:hover { background-color: #15803d; border-color: #15803d; }
+                    QPushButton:pressed { background-color: #166534; border-color: #166534; }
+                    """
+                )
+            # 底部状态栏与提示条同步深色
+            if hasattr(self, 'status_bar'):
+                self.status_bar.setStyleSheet(
+                    "QStatusBar{background-color:#0F141A;color:#E6EAF0;border-top:1px solid #1F2937;padding:4px 16px;font-size:12px;}"
+                )
+            # 分割线更暗，避免过亮
+            if hasattr(self, 'splitter'):
+                self.splitter.setStyleSheet("QSplitter::handle{background-color:#1F2937;}")
         else:
             # tokens - Clean Contrast (Light)
             tokens = {
@@ -1066,22 +1101,47 @@ class Win11MainWindow(QMainWindow):
             self.update_icons(False)
             # 应用 tokens 到右栏
             self.control_panel.apply_tokens(tokens)
+            # Hero 颜色与按钮样式
+            if hasattr(self, 'hero_frame'):
+                self.hero_frame.setStyleSheet("QFrame{background-color:#E8F5E9;border-bottom:1px solid #e5e5e5;}")
+            if hasattr(self, 'hero_title_label'):
+                self.hero_title_label.setStyleSheet("QLabel{color:#065f46;font-size:18px;font-weight:700;}")
+            if hasattr(self, 'hero_subtitle_label'):
+                self.hero_subtitle_label.setStyleSheet("QLabel{color:#0f766e;font-size:12px;}")
+            for btn in [getattr(self,'hero_open_btn',None), getattr(self,'hero_paste_btn',None), getattr(self,'hero_clear_btn',None)]:
+                if btn is not None:
+                    btn.setStyleSheet("QToolButton{color:#065f46;background:#ECFDF5;border:1px solid #A7F3D0;border-radius:6px;padding:2px 8px;} QToolButton:hover{background:#DCFCE7;}")
+            if hasattr(self, 'hero_start_btn'):
+                self.hero_start_btn.setStyleSheet(
+                    """
+                    QPushButton { background-color: #16a34a; color: #ffffff; border: 1px solid #16a34a; border-radius: 8px; font-size: 14px; font-weight: 600; padding: 6px 16px; }
+                    QPushButton:hover { background-color: #15803d; border-color: #15803d; }
+                    QPushButton:pressed { background-color: #166534; border-color: #166534; }
+                    """
+                )
+            # 底部状态栏浅色
+            if hasattr(self, 'status_bar'):
+                self.status_bar.setStyleSheet(
+                    "QStatusBar{background-color:#FFFFFF;color:#605e5c;border-top:1px solid #e5e5e5;padding:4px 16px;font-size:12px;}"
+                )
+            # 分割线更柔和
+            if hasattr(self, 'splitter'):
+                self.splitter.setStyleSheet("QSplitter::handle{background-color:#e2e8f0;}")
         # 重新渲染质量/预设等控件样式
         self.control_panel.update_preset_button_states(self.control_panel.quality_value)
-        # 更新工具栏图标
-        if hasattr(self, 'theme_action'):
-            self.theme_action.setText('☀️' if dark else '🌙')
-            self.theme_action.setToolTip('切换到浅色' if dark else '切换到深色')
+        # 无手动切换，故不更新切换图标
 
     def create_hero_bar(self) -> QWidget:
         """方案A：顶部 Hero 条，包含标题、副标题和开始转换按钮"""
         hero = QFrame()
-        hero.setFixedHeight(56)
+        # 让头部区域根据内容自适应高度（不再固定）
+        hero.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
         # 使用 tokens 的 surfaceMuted，避免大面积绿色
         self.hero_frame = hero
         layout = QHBoxLayout()
+        # 合理的上下内边距，保证文字不被裁切
         layout.setContentsMargins(16, 12, 16, 12)
-        layout.setSpacing(16)
+        layout.setSpacing(8)
 
         title = QLabel("Markdown 图片一键压缩为 WebP")
         self.hero_title_label = title
@@ -1095,18 +1155,56 @@ class Win11MainWindow(QMainWindow):
         v.setSpacing(4)
         v.addWidget(title)
         v.addWidget(subtitle)
+        # Hero 内的动作行：打开 / 粘贴 / 清空（紧凑款）
+        actions_row = QHBoxLayout()
+        actions_row.setContentsMargins(0, 0, 0, 0)
+        actions_row.setSpacing(6)
+        from PyQt6.QtWidgets import QToolButton
+        self.hero_open_btn = QToolButton()
+        self.hero_open_btn.setText("打开")
+        self.hero_open_btn.setFixedHeight(26)
+        self.hero_open_btn.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextOnly)
+        self.hero_open_btn.clicked.connect(self.open_markdown_file)
+        self.hero_paste_btn = QToolButton()
+        self.hero_paste_btn.setText("粘贴")
+        self.hero_paste_btn.setFixedHeight(26)
+        self.hero_paste_btn.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextOnly)
+        self.hero_paste_btn.clicked.connect(self.paste_from_clipboard)
+        self.hero_clear_btn = QToolButton()
+        self.hero_clear_btn.setText("清空")
+        self.hero_clear_btn.setFixedHeight(26)
+        self.hero_clear_btn.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextOnly)
+        self.hero_clear_btn.clicked.connect(self.clear_editor)
+        # 新增：图床入口
+        self.hero_imagebed_btn = QToolButton()
+        self.hero_imagebed_btn.setText("图床")
+        self.hero_imagebed_btn.setFixedHeight(26)
+        self.hero_imagebed_btn.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextOnly)
+        self.hero_imagebed_btn.clicked.connect(self.open_image_bed_dialog)
+        actions_row.addWidget(self.hero_open_btn)
+        actions_row.addWidget(self.hero_paste_btn)
+        actions_row.addWidget(self.hero_clear_btn)
+        actions_row.addWidget(self.hero_imagebed_btn)
+        actions_row.addStretch()
+        v.addLayout(actions_row)
         text_block.setLayout(v)
 
         start_btn = QPushButton("开始转换")
-        start_btn.setFixedHeight(36)
-        start_btn.setFixedWidth(120)
+        start_btn.setFixedHeight(38)
+        start_btn.setFixedWidth(128)
         # 样式由 tokens 注入
+        self.hero_start_btn = start_btn
         start_btn.clicked.connect(self.on_convert_clicked)
 
         layout.addWidget(text_block, 1)
         layout.addStretch()
         layout.addWidget(start_btn, 0, Qt.AlignmentFlag.AlignVCenter)
         hero.setLayout(layout)
+        # 以 sizeHint 作为最小高度，随文字/按钮变化自适应
+        try:
+            hero.setMinimumHeight(hero.sizeHint().height())
+        except Exception:
+            pass
         return hero
 
     def create_bottom_hint_bar(self) -> QWidget:
@@ -1131,12 +1229,16 @@ class Win11MainWindow(QMainWindow):
         return
 
     def create_toolbar(self):
-        """顶端工具栏：右侧加入主题切换图标"""
+        """顶端工具栏：仅保留常用动作 + 图床入口"""
         toolbar = QToolBar("toolbar")
         toolbar.setMovable(False)
         toolbar.setFloatable(False)
         toolbar.setIconSize(QSize(18, 18))
-        toolbar.setStyleSheet("QToolBar{background:transparent;border:0px;padding:0px 6px;}")
+        # 提升工具栏高度，避免与窗口标题区产生视觉挤压/遮挡
+        toolbar.setFixedHeight(44)
+        toolbar.setStyleSheet(
+            "QToolBar{background:transparent;border:0px;padding:6px 8px;min-height:44px;}"
+        )
         self.addToolBar(Qt.ToolBarArea.TopToolBarArea, toolbar)
 
         # 左侧常用动作
@@ -1159,24 +1261,17 @@ class Win11MainWindow(QMainWindow):
         spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         toolbar.addWidget(spacer)
 
-        self.theme_action = QAction('🌙', self)
-        self.theme_action.setToolTip('切换到深色')
-        self.theme_action.triggered.connect(self.toggle_theme)
-        toolbar.addAction(self.theme_action)
+        # 图床设置入口
+        self.imagebed_action = QAction("图床", self)
+        self.imagebed_action.setStatusTip("图床选择与配置")
+        self.imagebed_action.triggered.connect(self.open_image_bed_dialog)
+        toolbar.addAction(self.imagebed_action)
     
     def setup_status_bar(self):
         """设置Win11风格状态栏"""
         status_bar = self.statusBar()
-        status_bar.setStyleSheet("""
-            QStatusBar {
-                background-color: #f9f9f9;
-                color: #605e5c;
-                border-top: 1px solid #e5e5e5;
-                font-size: 12px;
-                font-family: 'Segoe UI';
-                padding: 4px 16px;
-            }
-        """)
+        # 保存引用以便主题切换时统一控制（修复底部浅色问题）
+        self.status_bar = status_bar
         
         # 左侧信息
         self.status_label = QLabel("就绪")
@@ -1190,6 +1285,11 @@ class Win11MainWindow(QMainWindow):
         self.control_panel.quality_slider.valueChanged.connect(
             lambda v: self.context_label.setText(f"质量: {v}%")
         )
+
+    def on_convert_clicked(self):
+        """开始转换（供 Hero 按钮/右侧按钮调用）"""
+        self.status_label.setText("正在转换...")
+        self.real_conversion()
     
     def restore_window_state(self):
         """恢复窗口状态"""
@@ -1224,12 +1324,20 @@ class Win11MainWindow(QMainWindow):
         self.save_window_state()
         event.accept()
 
+    # 不再提供手动切换主题
     def toggle_theme(self):
-        """切换浅色/深色主题"""
-        self.current_theme_dark = not self.current_theme_dark
-        self.apply_theme(self.current_theme_dark)
-        # 持久化
-        self.settings.setValue("themeDark", self.current_theme_dark)
+        pass
+
+    # ===== 图床设置对话框（骨架） =====
+    def open_image_bed_dialog(self):
+        if not hasattr(self, 'imagebed_dialog'):
+            self.imagebed_dialog = ImageBedDialog(self)
+            # 主题随窗口刷新
+            self.imagebed_dialog.apply_theme(self.current_theme_dark)
+        self.imagebed_dialog.show()
+        self.imagebed_dialog.raise_()
+        self.imagebed_dialog.activateWindow()
+
 
     # ===== 额外功能：文件/粘贴/清空 =====
     def open_markdown_file(self):
@@ -1262,8 +1370,9 @@ class Win11MainWindow(QMainWindow):
         if qta is None:
             return
         # 主题图标
-        theme_icon = qta.icon('fa5s.sun', color='#fde68a') if dark else qta.icon('fa5s.moon', color='#111827')
-        self.theme_action.setIcon(theme_icon)
+        if hasattr(self, 'theme_action'):
+            theme_icon = qta.icon('fa5s.sun', color='#fde68a') if dark else qta.icon('fa5s.moon', color='#111827')
+            self.theme_action.setIcon(theme_icon)
         # 工具栏图标
         common_color = '#e5e7eb' if dark else '#111827'
         if hasattr(self, 'open_action'):
@@ -1275,6 +1384,76 @@ class Win11MainWindow(QMainWindow):
         # 转换主按钮图标
         self.control_panel.convert_btn.setIcon(qta.icon('fa5s.play', color='#ffffff'))
         self.control_panel.convert_btn.setIconSize(QSize(16, 16))
+
+class ImageBedDialog(QDialog):
+    """图床设置对话框 - 骨架实现"""
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("图床设置")
+        self.setModal(False)
+        self.setMinimumSize(560, 420)
+        self._build_ui()
+
+    def _build_ui(self):
+        root = QVBoxLayout(self)
+        # 顶部：图床选择与状态
+        top = QHBoxLayout()
+        top.addWidget(QLabel("图床："))
+        self.provider_combo = QComboBox()
+        self.provider_combo.addItems([
+            "七牛 v1.0", "腾讯云 COS v4 v1.1", "腾讯云 COS v5 v1.5.0",
+            "又拍云 v1.2.0", "GitHub v1.5.0", "SM.MS V2 v2.3.0-beta.0",
+            "阿里云 OSS v1.6.0", "Imgur v1.6.0",
+        ])
+        top.addWidget(self.provider_combo)
+        top.addStretch()
+        self.status_chip = QLabel("未测试")
+        self.status_chip.setStyleSheet("QLabel{padding:2px 10px;border-radius:10px;background:#f1f5f9;color:#334155;font-size:12px;}")
+        top.addWidget(self.status_chip)
+        root.addLayout(top)
+
+        # Tabs
+        self.tabs = QTabWidget(self)
+        self.tab_status = QWidget(); self.tab_config = QWidget(); self.tab_advanced = QWidget()
+        self.tabs.addTab(self.tab_status, "选择与状态")
+        self.tabs.addTab(self.tab_config, "凭据与配置")
+        self.tabs.addTab(self.tab_advanced, "高级与策略")
+        root.addWidget(self.tabs)
+
+        # 选择与状态
+        st = QVBoxLayout(self.tab_status)
+        st.addWidget(QLabel("说明：选择图床后，可在下方“保存”并稍后进行上传测试。"))
+        st.addStretch()
+
+        # 凭据与配置（占位表单）
+        scroll = QScrollArea(self.tab_config); scroll.setWidgetResizable(True)
+        host = QWidget(); form = QVBoxLayout(host)
+        self.field_endpoint = QLineEdit(); self.field_bucket = QLineEdit()
+        self.field_access_id = QLineEdit(); self.field_access_secret = QLineEdit(); self.field_access_secret.setEchoMode(QLineEdit.EchoMode.Password)
+        form.addWidget(QLabel("Endpoint/域名")); form.addWidget(self.field_endpoint)
+        form.addWidget(QLabel("Bucket/仓库")); form.addWidget(self.field_bucket)
+        form.addWidget(QLabel("AccessKey/Token")); form.addWidget(self.field_access_id)
+        form.addWidget(QLabel("Secret")); form.addWidget(self.field_access_secret)
+        form.addStretch(); scroll.setWidget(host)
+        cfg = QVBoxLayout(self.tab_config); cfg.addWidget(scroll)
+
+        # 高级与策略（占位）
+        adv = QVBoxLayout(self.tab_advanced)
+        self.chk_enable_upload = QCheckBox("启用转换后自动上传")
+        adv.addWidget(self.chk_enable_upload)
+        adv.addStretch()
+
+        # 底部按钮
+        btns = QDialogButtonBox(QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Close)
+        btns.accepted.connect(self.accept)
+        btns.rejected.connect(self.reject)
+        root.addWidget(btns)
+
+    def apply_theme(self, dark: bool):
+        if dark:
+            self.setStyleSheet("QDialog{background:#0F141A;color:#E6EAF0;}")
+        else:
+            self.setStyleSheet("QDialog{background:#FFFFFF;color:#0F172A;}")
     
     def on_convert_clicked(self):
         """转换按钮点击事件"""
