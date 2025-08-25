@@ -13,11 +13,12 @@ from PyQt6.QtWidgets import (
     QDialog, QTabWidget, QComboBox, QLineEdit, QCheckBox, QDialogButtonBox,
     QScrollArea
 )
-from PyQt6.QtCore import Qt, QTimer, QSize, pyqtSignal, QSettings, QRect, QPoint, QPropertyAnimation, QEasingCurve, QThread
+from PyQt6.QtCore import Qt, QTimer, QSize, pyqtSignal, QSettings, QRect, QPoint, QPropertyAnimation, QEasingCurve
 from PyQt6.QtGui import QFont, QAction, QPalette, QColor, QPixmap, QPainter, QScreen, QCursor, QIcon
 import sys
 import os
 from pathlib import Path
+import re
 
 # 添加core模块路径
 current_dir = Path(__file__).parent.parent
@@ -29,42 +30,16 @@ except ImportError:
     print("Warning: 无法导入图片转换模块")
     convert_markdown_images = None
 
+from .utils import detect_system_theme_default_dark, format_size_human
+
 # FontAwesome 图标支持（qtawesome）
 try:
     import qtawesome as qta
 except Exception:
     qta = None
 
-class ConversionWorker(QThread):
-    """图片转换工作线程"""
-    progress_updated = pyqtSignal(int, str)
-    conversion_finished = pyqtSignal(str, int, dict)  # 添加压缩统计
-    conversion_error = pyqtSignal(str)
-    
-    def __init__(self, markdown_text, output_dir, quality):
-        super().__init__()
-        self.markdown_text = markdown_text
-        self.output_dir = output_dir
-        self.quality = quality
-    
-    def run(self):
-        """在后台线程中执行转换"""
-        try:
-            if convert_markdown_images:
-                def progress_callback(progress, message):
-                    self.progress_updated.emit(progress, message)
-                
-                new_markdown, count, stats = convert_markdown_images(
-                    self.markdown_text, 
-                    self.output_dir, 
-                    self.quality, 
-                    progress_callback
-                )
-                self.conversion_finished.emit(new_markdown, count, stats)
-            else:
-                self.conversion_error.emit("图片转换模块未找到")
-        except Exception as e:
-            self.conversion_error.emit(f"转换失败: {str(e)}")
+from .workers import ConversionWorker, UploadWorker
+
 
 class Win11MarkdownEditor(QTextEdit):
     """Win11风格的Markdown编辑器"""
@@ -854,33 +829,27 @@ class Win11ControlPanel(QWidget):
         # 方案A：右侧仅保留质量与进度。若统计控件不存在，则直接跳过更新。
         if not hasattr(self, 'original_size_label'):
             return
-        def format_size(size_bytes):
-            """格式化文件大小"""
-            if size_bytes == 0:
-                return "0 B"
-            
-            for unit in ['B', 'KB', 'MB', 'GB']:
-                if size_bytes < 1024:
-                    return f"{size_bytes:.1f} {unit}"
-                size_bytes /= 1024
-            return f"{size_bytes:.1f} TB"
+        from .utils import format_size_human as _fmt
         
         original_size = stats.get('total_original_size', 0)
         compressed_size = stats.get('total_converted_size', 0)
         saved_size = stats.get('size_saved', 0)
         compression_ratio = stats.get('compression_ratio', 0)
         
-        self.original_size_label.setText(f"原始大小: {format_size(original_size)}")
-        self.compressed_size_label.setText(f"压缩后: {format_size(compressed_size)}")
-        self.saved_size_label.setText(f"节省空间: {format_size(saved_size)}")
+        self.original_size_label.setText(f"原始大小: {_fmt(original_size)}")
+        self.compressed_size_label.setText(f"压缩后: {_fmt(compressed_size)}")
+        self.saved_size_label.setText(f"节省空间: {_fmt(saved_size)}")
         self.compression_ratio_label.setText(f"压缩比例: {compression_ratio:.1f}%")
     
     def reset_compression_stats(self):
         """重置压缩统计信息"""
         if hasattr(self, 'original_size_label'):
             self.original_size_label.setText("原始大小: --")
+        if hasattr(self, 'compressed_size_label'):
             self.compressed_size_label.setText("压缩后: --")
+        if hasattr(self, 'saved_size_label'):
             self.saved_size_label.setText("节省空间: --")
+        if hasattr(self, 'compression_ratio_label'):
             self.compression_ratio_label.setText("压缩比例: --")
     
     def on_quality_changed(self, value):
@@ -1013,10 +982,10 @@ class Win11MainWindow(QMainWindow):
             }
             # 深色
             self.setStyleSheet("""
-                QMainWindow { background-color: #0f172a; }
-                QMenuBar { background-color: #111827; color: #e5e7eb; border: none; }
-                QMenuBar::item:selected { background-color: #1f2937; }
-            """)
+                    QMainWindow { background-color: #0f172a; }
+                    QMenuBar { background-color: #111827; color: #e5e7eb; border: none; }
+                    QMenuBar::item:selected { background-color: #1f2937; }
+                """)
             # 编辑器深色
             self.editor.is_dark_theme = True
             self.editor.apply_theme_style()
@@ -1430,7 +1399,8 @@ class ImageBedDialog(QDialog):
         host = QWidget(); form = QVBoxLayout(host)
         self.field_endpoint = QLineEdit(); self.field_bucket = QLineEdit()
         self.field_access_id = QLineEdit(); self.field_access_secret = QLineEdit(); self.field_access_secret.setEchoMode(QLineEdit.EchoMode.Password)
-        form.addWidget(QLabel("Endpoint/域名")); form.addWidget(self.field_endpoint)
+        region_lbl = QLabel("地域前缀(如 oss-cn-beijing)")
+        form.addWidget(region_lbl); form.addWidget(self.field_endpoint)
         form.addWidget(QLabel("Bucket/仓库")); form.addWidget(self.field_bucket)
         form.addWidget(QLabel("AccessKey/Token")); form.addWidget(self.field_access_id)
         form.addWidget(QLabel("Secret")); form.addWidget(self.field_access_secret)
@@ -1443,10 +1413,13 @@ class ImageBedDialog(QDialog):
         adv.addWidget(self.chk_enable_upload)
         adv.addStretch()
 
-        # 底部按钮
+        # 底部按钮：保存 / 测试上传 / 关闭
         btns = QDialogButtonBox(QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Close)
-        btns.accepted.connect(self.accept)
+        self.test_btn = QPushButton("测试上传")
+        btns.addButton(self.test_btn, QDialogButtonBox.ButtonRole.ActionRole)
+        btns.accepted.connect(self.on_save)
         btns.rejected.connect(self.reject)
+        self.test_btn.clicked.connect(self.on_test_upload)
         root.addWidget(btns)
 
     def apply_theme(self, dark: bool):
@@ -1454,6 +1427,93 @@ class ImageBedDialog(QDialog):
             self.setStyleSheet("QDialog{background:#0F141A;color:#E6EAF0;}")
         else:
             self.setStyleSheet("QDialog{background:#FFFFFF;color:#0F172A;}")
+    
+    # === 业务：保存配置到 QSettings ===
+    def _provider_key(self) -> str:
+        text = self.provider_combo.currentText()
+        if "阿里云" in text or "OSS" in text:
+            return "aliyun_oss"
+        if "七牛" in text:
+            return "qiniu"
+        if "腾讯云" in text and "v4" in text:
+            return "cos_v4"
+        if "腾讯云" in text and "v5" in text:
+            return "cos_v5"
+        if "又拍云" in text:
+            return "upyun"
+        if "GitHub" in text:
+            return "github"
+        if "SM.MS" in text:
+            return "smms"
+        if "Imgur" in text:
+            return "imgur"
+        return ""
+
+    def _normalize_aliyun_endpoint(self, region_prefix: str) -> str:
+        rp = region_prefix.strip()
+        # 允许用户直接填完整域名；若已包含 http 则直接返回
+        if rp.startswith("http://") or rp.startswith("https://"):
+            return rp
+        # 只填了地域前缀：拼为 https://<prefix>.aliyuncs.com
+        return f"https://{rp}.aliyuncs.com"
+
+    def on_save(self):
+        settings = QSettings("MdImgConverter", "Settings")
+        prov = self._provider_key()
+        settings.setValue("imgbed/provider", prov)
+        # 是否启用自动上传
+        enabled = bool(self.chk_enable_upload.isChecked()) if hasattr(self, 'chk_enable_upload') else False
+        settings.setValue("imgbed/enabled", enabled)
+        # 仅针对阿里云字段（其余图床后续补充）
+        if prov == "aliyun_oss":
+            endpoint = self._normalize_aliyun_endpoint(self.field_endpoint.text())
+            settings.setValue("imgbed/aliyun/endpoint", endpoint)
+            settings.setValue("imgbed/aliyun/bucket", self.field_bucket.text().strip())
+            settings.setValue("imgbed/aliyun/accessKeyId", self.field_access_id.text().strip())
+            settings.setValue("imgbed/aliyun/accessKeySecret", self.field_access_secret.text().strip())
+            # 路径前缀默认 images
+            if settings.value("imgbed/aliyun/prefix", "") in (None, ""):
+                settings.setValue("imgbed/aliyun/prefix", "images")
+        self.status_chip.setText("已保存（未测试）")
+        self.accept()
+
+    # === 业务：测试上传一张内存图片 ===
+    def on_test_upload(self):
+        try:
+            from uploader.ali_oss_adapter import AliOssAdapter
+            from PIL import Image
+            from io import BytesIO
+        except Exception as e:
+            QMessageBox.warning(self, "缺少依赖", f"测试失败：{e}")
+            return
+        prov = self._provider_key()
+        if prov != "aliyun_oss":
+            QMessageBox.information(self, "提示", "当前先支持测试阿里云 OSS，其他图床后续补充。")
+            return
+        endpoint = self._normalize_aliyun_endpoint(self.field_endpoint.text())
+        bucket = self.field_bucket.text().strip()
+        ak = self.field_access_id.text().strip()
+        sk = self.field_access_secret.text().strip()
+        if not all([endpoint, bucket, ak, sk]):
+            QMessageBox.warning(self, "缺少配置", "请填写 Endpoint/Bucket/AccessKey/Secret")
+            return
+        try:
+            adapter = AliOssAdapter(
+                access_key_id=ak,
+                access_key_secret=sk,
+                bucket_name=bucket,
+                endpoint=endpoint,
+                storage_path_prefix="images",
+            )
+            img = Image.new('RGB', (2, 2), (0, 255, 0))
+            buf = BytesIO()
+            img.save(buf, format='WEBP', quality=75)
+            url = adapter.upload_bytes(buf.getvalue(), "mdimgconverter_test.webp")
+            self.status_chip.setText("测试成功")
+            QMessageBox.information(self, "测试成功", f"已上传：\n{url}")
+        except Exception as e:
+            self.status_chip.setText("测试失败")
+            QMessageBox.critical(self, "测试失败", str(e))
     
     def on_convert_clicked(self):
         """转换按钮点击事件"""
@@ -1521,7 +1581,7 @@ class ImageBedDialog(QDialog):
     
     def on_conversion_finished(self, new_markdown, count, stats):
         """转换完成"""
-        # 更新编辑器内容
+        # 更新编辑器内容（先显示转换结果，不阻塞）
         self.editor.setPlainText(new_markdown)
         
         # 更新压缩统计
@@ -1532,16 +1592,34 @@ class ImageBedDialog(QDialog):
         self.control_panel.convert_btn.setText("转换")
         self.control_panel.set_progress(0)
         self.status_label.setText(f"转换完成！成功转换 {count} 张图片")
+
+        # 后台开始上传（不阻塞 UI）
+        try:
+            settings = QSettings("MdImgConverter", "Settings")
+            if settings.value("imgbed/enabled", False, type=bool) and settings.value("imgbed/provider", "") == "aliyun_oss":
+                base_dir = os.path.dirname(self.current_file) if getattr(self, 'current_file', None) else os.getcwd()
+                img_dir = os.path.join(base_dir, "images")
+                local_webps = []
+                if os.path.isdir(img_dir):
+                    for name in os.listdir(img_dir):
+                        if name.lower().endswith('.webp'):
+                            local_webps.append(os.path.join(img_dir, name))
+                if local_webps:
+                    self.upload_worker = UploadWorker(base_dir, local_webps)
+                    self.upload_worker.progress_updated.connect(self.on_conversion_progress)
+                    def _on_uploaded(mapping: dict):
+                        md = self.editor.toPlainText()
+                        new_md = self._replace_local_paths_with_remote(md, base_dir, mapping)
+                        self.editor.setPlainText(new_md)
+                        self.status_label.setText("上传完成")
+                    self.upload_worker.finished_with_mapping.connect(_on_uploaded)
+                    self.upload_worker.error.connect(lambda e: self.status_label.setText(f"上传失败: {e}"))
+                    self.upload_worker.start()
+        except Exception:
+            pass
         
         # 格式化统计信息用于显示
-        def format_size(size_bytes):
-            if size_bytes == 0:
-                return "0 B"
-            for unit in ['B', 'KB', 'MB', 'GB']:
-                if size_bytes < 1024:
-                    return f"{size_bytes:.1f} {unit}"
-                size_bytes /= 1024
-            return f"{size_bytes:.1f} TB"
+        from .utils import format_size_human as format_size
         
         original_size = stats.get('total_original_size', 0)
         saved_size = stats.get('size_saved', 0)
@@ -1567,3 +1645,17 @@ class ImageBedDialog(QDialog):
         
         # 显示错误消息
         QMessageBox.critical(self, "转换失败", error_message)
+
+    def _replace_local_paths_with_remote(self, md: str, base_dir: str, mapping: dict) -> str:
+        """将 Markdown 中 ./images 或 images 的相对路径替换为远程 URL"""
+        def rel(p: str) -> str:
+            # 生成两种相对形式：images/name.webp 与 ./images/name.webp
+            img_dir = os.path.join(base_dir, "images")
+            rp = os.path.relpath(p, base_dir).replace('\\','/')
+            rp2 = './' + rp if not rp.startswith('./') else rp
+            return rp, rp2
+        for lp, url in mapping.items():
+            r1, r2 = rel(lp)
+            # 粗略替换两种可能形式
+            md = md.replace(r1, url).replace(r2, url)
+        return md
