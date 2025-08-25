@@ -56,10 +56,8 @@ class ImageBedDialog(QDialog):
         root.addWidget(btns)
 
     def apply_theme(self, dark: bool):
-        if dark:
-            self.setStyleSheet("QDialog{background:#0F141A;color:#E6EAF0;}")
-        else:
-            self.setStyleSheet("QDialog{background:#FFFFFF;color:#0F172A;}")
+        # 弹窗固定深色主题
+        self.setStyleSheet("QDialog{background:#0F141A;color:#E6EAF0;}")
 
     def _provider_key(self) -> str:
         text = self.provider_combo.currentText()
