@@ -13,7 +13,7 @@ from PyQt6.QtWidgets import (
     QDialog, QTabWidget, QComboBox, QLineEdit, QCheckBox, QDialogButtonBox, QScrollArea
 )
 from PyQt6.QtCore import Qt, QTimer, QSize, pyqtSignal, QSettings, QRect, QPoint, QPropertyAnimation, QEasingCurve
-from PyQt6.QtGui import QFont, QAction, QPalette, QColor, QPixmap, QPainter, QScreen, QCursor, QIcon
+from PyQt6.QtGui import QFont, QAction, QPalette, QColor, QPixmap, QPainter, QScreen, QCursor, QIcon, QFontMetrics
 try:
     from PyQt6.QtSvg import QSvgRenderer
 except Exception:
@@ -436,7 +436,7 @@ class Win11ControlPanel(QWidget):
         return card
 
     def _apply_progress_styles(self, dark: bool):
-        """根据主题更新“转换进度”区域的颜色样式"""
+        """根据主题更新"转换进度"区域的颜色样式"""
         if dark:
             if hasattr(self, 'progress_title'):
                 self.progress_title.setStyleSheet("QLabel{color:#E5E7EB;font-size:16px;font-weight:600;margin-bottom:4px;}")
@@ -845,6 +845,17 @@ class Win11MainWindow(QMainWindow):
         # 使用标准窗口
         self.setWindowTitle("MdImgConverter")
         self.setMinimumSize(900, 700)
+        # 设置窗口与应用图标（任务栏 + 左上角），兼容 PyInstaller 资源路径
+        try:
+            app_icon = self._load_app_icon()
+            if app_icon is not None:
+                self.setWindowIcon(app_icon)
+                try:
+                    QApplication.setWindowIcon(app_icon)
+                except Exception:
+                    pass
+        except Exception:
+            pass
         
         # 创建主容器
         main_container = QWidget()
@@ -925,6 +936,25 @@ class Win11MainWindow(QMainWindow):
         except Exception:
             return False
 
+    def _resolve_base_dir(self) -> Path:
+        """解析资源基路径：源码运行或 PyInstaller 下均可用。"""
+        try:
+            import sys as _sys
+            return Path(getattr(_sys, "_MEIPASS", Path(__file__).resolve().parents[2]))
+        except Exception:
+            return Path(__file__).resolve().parents[2]
+
+    def _load_app_icon(self) -> QIcon | None:
+        """加载应用图标 pictures/Meowdown.ico。找不到则返回 None。"""
+        try:
+            base_dir = self._resolve_base_dir()
+            ico_path = base_dir / 'pictures' / 'Meowdown.ico'
+            if ico_path.exists():
+                return QIcon(str(ico_path))
+        except Exception:
+            pass
+        return None
+
     def apply_theme(self, dark: bool):
         """根据主题开关设置全局与局部样式"""
         if dark:
@@ -968,9 +998,17 @@ class Win11MainWindow(QMainWindow):
             self.update_icons(True)
             # 应用 tokens 到右栏
             self.control_panel.apply_tokens(tokens)
-            # 同步“转换进度”区域颜色
+            # 同步"转换进度"区域颜色
             if hasattr(self, 'control_panel') and hasattr(self.control_panel, '_apply_progress_styles'):
                 self.control_panel._apply_progress_styles(True)
+            # 设置深色 Logo
+            try:
+                import sys as _sys
+                base_dir = Path(getattr(_sys, "_MEIPASS", Path(__file__).resolve().parents[2]))
+                logo_path = base_dir / 'pictures' / 'Meowdown – D.png'
+                self._set_hero_logo_scaled(logo_path)
+            except Exception:
+                pass
             # Hero 颜色与按钮样式
             if hasattr(self, 'hero_frame'):
                 self.hero_frame.setStyleSheet("QFrame{background-color:#111827;}")
@@ -1045,9 +1083,17 @@ class Win11MainWindow(QMainWindow):
             self.update_icons(False)
             # 应用 tokens 到右栏
             self.control_panel.apply_tokens(tokens)
-            # 同步“转换进度”区域颜色
+            # 同步"转换进度"区域颜色
             if hasattr(self, 'control_panel') and hasattr(self.control_panel, '_apply_progress_styles'):
                 self.control_panel._apply_progress_styles(False)
+            # 设置浅色 Logo（等比缩放到标题字号高度，约18px）
+            try:
+                import sys as _sys
+                base_dir = Path(getattr(_sys, "_MEIPASS", Path(__file__).resolve().parents[2]))
+                logo_path = base_dir / 'pictures' / 'Meowdown – L.png'
+                self._set_hero_logo_scaled(logo_path)
+            except Exception:
+                pass
             # Hero 颜色与按钮样式
             if hasattr(self, 'hero_frame'):
                 self.hero_frame.setStyleSheet("QFrame{background-color:#E8F5E9;}")
@@ -1089,8 +1135,12 @@ class Win11MainWindow(QMainWindow):
         # 无手动切换，故不更新切换图标
 
     def _icon_from_svg_file(self, filename: str, color_hex: str | None = None, size: int = 28) -> QIcon | None:
-        """从项目根目录 /image/ 加载指定 SVG 并渲染为 QIcon，支持着色与尺寸。"""
-        p = Path.cwd() / 'image' / filename
+        """从 /image/ 目录加载 SVG 并渲染为 QIcon，支持 PyInstaller 与源码两种运行方式。"""
+        import sys
+        # PyInstaller: 资源位于 sys._MEIPASS 根目录下的 image/
+        # 源码运行：以仓库根目录为基准（win11_design.py 位于 md-converter-gui/ui/ 下，向上两级到根）
+        base_dir = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parents[2]))
+        p = base_dir / 'image' / filename
         if not p.exists():
             return None
         try:
@@ -1117,6 +1167,41 @@ class Win11MainWindow(QMainWindow):
         except Exception:
             return int(16 * em)
 
+    def _compute_logo_target_height(self) -> int:
+        """计算顶部 Logo 目标高度：使用 2.9em（基于可用文本控件字体），并做上下限保护。"""
+        try:
+            ref = getattr(self, 'hero_subtitle_label', None) or getattr(self, 'hero_logo_label', None) or self
+            return max(20, min(self._em_px(ref, 2.9), 64))
+        except Exception:
+            return 48
+
+    def _set_hero_logo_scaled(self, logo_path: Path):
+        """将 Logo 按目标高度等比缩放后设置到 hero_logo_label，不裁剪。"""
+        try:
+            if not hasattr(self, 'hero_logo_label') or self.hero_logo_label is None:
+                return
+            if not logo_path or not logo_path.exists():
+                return
+            pix = QPixmap(str(logo_path))
+            target_h = self._compute_logo_target_height()
+            if target_h <= 0:
+                target_h = 18
+            scaled = pix.scaledToHeight(target_h, Qt.TransformationMode.SmoothTransformation)
+            self.hero_logo_label.setPixmap(scaled)
+            # 为底部预留 1.2em 空白，避免视觉上被裁切
+            try:
+                reserve = self._em_px(self.hero_logo_label, 1.2)
+            except Exception:
+                reserve = 12
+            label_h = target_h + reserve
+            self.hero_logo_label.setContentsMargins(0, 0, 0, reserve)
+            self.hero_logo_label.setFixedHeight(label_h)
+            self.hero_logo_label.setMinimumHeight(label_h)
+            self.hero_logo_label.setMaximumHeight(label_h)
+            self.hero_logo_label.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        except Exception:
+            pass
+
     def create_hero_bar(self) -> QWidget:
         """方案A：顶部 Hero 条，包含标题、副标题和开始转换按钮"""
         hero = QFrame()
@@ -1129,8 +1214,10 @@ class Win11MainWindow(QMainWindow):
         layout.setContentsMargins(16, 12, 16, 12)
         layout.setSpacing(8)
 
-        title = QLabel("Markdown 图片一键压缩为 WebP")
-        self.hero_title_label = title
+        # 顶部品牌 Logo（按主题切换图片）
+        self.hero_logo_label = QLabel()
+        self.hero_logo_label.setContentsMargins(0, 0, 0, 0)
+        self.hero_logo_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
 
         subtitle = QLabel("粘贴或打开 Markdown，右侧调质量，点击开始转换")
         self.hero_subtitle_label = subtitle
@@ -1138,8 +1225,11 @@ class Win11MainWindow(QMainWindow):
         text_block = QWidget()
         v = QVBoxLayout()
         v.setContentsMargins(0, 0, 0, 0)
-        v.setSpacing(0)
-        v.addWidget(title)
+        try:
+            v.setSpacing(self._em_px(subtitle, 0.5))
+        except Exception:
+            v.setSpacing(8)
+        v.addWidget(self.hero_logo_label)
         v.addWidget(subtitle)
         # Hero 内的动作行：打开 / 粘贴 / 清空（紧凑款）
         actions_row = QHBoxLayout()
@@ -1219,18 +1309,31 @@ class Win11MainWindow(QMainWindow):
         spacer = QWidget(); spacer.setFixedWidth(6); layout.addWidget(spacer)
         layout.addWidget(start_btn, 0, Qt.AlignmentFlag.AlignVCenter)
         hero.setLayout(layout)
-        # 自适应高度：依据 em（字体高度）+ 左列行高 + 右侧按钮进行综合计算
+        # 自适应高度：按“Logo + 副标题 + 动作行”三者高度之和，再额外扩张 3em
         try:
-            t_h = title.sizeHint().height()
+            sub_h = self.hero_subtitle_label.sizeHint().height() if hasattr(self, 'hero_subtitle_label') else 0
             row_h = max(self.hero_open_btn.sizeHint().height(), self.hero_paste_btn.sizeHint().height(), self.hero_clear_btn.sizeHint().height(), self.hero_imagebed_btn.sizeHint().height())
             right_btn_h = max(start_btn.sizeHint().height(), getattr(self, 'theme_tool_btn', theme_btn).sizeHint().height())
-            # 目标高度按 5.2em 为基线，进一步抬高
-            target_em_h = self._em_px(title, 5.2)
-            content_h = max(target_em_h, t_h, row_h, right_btn_h)
+            logo_h = self._compute_logo_target_height()
+            try:
+                reserve = self._em_px(self.hero_logo_label, 1.2)
+            except Exception:
+                reserve = 12
+            logo_block_h = logo_h + reserve
+            # 三块之间的布局间距（有两处间隔）
+            try:
+                gap = v.spacing()
+            except Exception:
+                gap = self._em_px(self.hero_subtitle_label if hasattr(self, 'hero_subtitle_label') else hero, 0.5)
+            total_gaps = gap * 2
+            # 额外扩张 2em（适当缩小整体留白）
+            extra = self._em_px(self.hero_subtitle_label if hasattr(self, 'hero_subtitle_label') else hero, 2.0)
+            # 内容高度 = 三块高度和 + 间隔 + 额外 3em
+            content_h = logo_block_h + sub_h + max(row_h, right_btn_h) + total_gaps + extra
             margins_v = 12 + 12
             h = content_h + margins_v
-            # 合理区间，按 em 结果上下限约束
-            h = max(110, min(h, 168))
+            # 将最小/最大固定为计算值（最低不小于 72），避免超出造成多余空白
+            h = max(72, h)
             hero.setMinimumHeight(h)
             hero.setMaximumHeight(h)
         except Exception:
@@ -1298,7 +1401,7 @@ class Win11MainWindow(QMainWindow):
         # 保存引用以便主题切换时统一控制（修复底部浅色问题）
         self.status_bar = status_bar
         
-        # 左侧信息
+        # 左侧仅文字
         self.status_label = QLabel("就绪")
         status_bar.addWidget(self.status_label)
         
@@ -1566,6 +1669,13 @@ class Win11MainWindow(QMainWindow):
             # 主题随窗口刷新
             # 图床设置弹窗固定使用深色主题
             self.imagebed_dialog.apply_theme(True)
+        else:
+            # 二次打开时刷新已保存配置
+            try:
+                if hasattr(self.imagebed_dialog, 'load_from_settings'):
+                    self.imagebed_dialog.load_from_settings()
+            except Exception:
+                pass
         self.imagebed_dialog.show()
         self.imagebed_dialog.raise_()
         self.imagebed_dialog.activateWindow()
@@ -1645,6 +1755,11 @@ class ImageBedDialog(QDialog):
         self.setModal(False)
         self.setMinimumSize(560, 420)
         self._build_ui()
+        # 初始化时从本地配置加载
+        try:
+            self.load_from_settings()
+        except Exception:
+            pass
 
     def _build_ui(self):
         root = QVBoxLayout(self)
@@ -1695,9 +1810,12 @@ class ImageBedDialog(QDialog):
         btns = QDialogButtonBox(QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Close)
         self.test_btn = QPushButton("测试上传")
         btns.addButton(self.test_btn, QDialogButtonBox.ButtonRole.ActionRole)
+        self.clear_btn = QPushButton("清空")
+        btns.addButton(self.clear_btn, QDialogButtonBox.ButtonRole.ActionRole)
         btns.accepted.connect(self.on_save)
         btns.rejected.connect(self.reject)
         self.test_btn.clicked.connect(self.on_test_upload)
+        self.clear_btn.clicked.connect(self.on_clear)
         root.addWidget(btns)
 
     def apply_theme(self, dark: bool):
@@ -1705,6 +1823,42 @@ class ImageBedDialog(QDialog):
             self.setStyleSheet("QDialog{background:#0F141A;color:#E6EAF0;}")
         else:
             self.setStyleSheet("QDialog{background:#FFFFFF;color:#0F172A;}")
+    
+    def load_from_settings(self):
+        """从 QSettings 读取并预填表单（支持已配置的图床二次打开缓存）。"""
+        settings = QSettings("MdImgConverter", "Settings")
+        try:
+            settings.sync()
+        except Exception:
+            pass
+        # 选择图床
+        prov = settings.value("imgbed/provider", "aliyun_oss") or "aliyun_oss"
+        # 根据 provider 文本匹配下拉项
+        text_map = {
+            "aliyun_oss": "阿里云 OSS",
+            "qiniu": "七牛",
+            "cos_v4": "腾讯云 COS v4",
+            "cos_v5": "腾讯云 COS v5",
+            "upyun": "又拍云",
+            "github": "GitHub",
+            "smms": "SM.MS",
+            "imgur": "Imgur",
+        }
+        target = text_map.get(prov, "阿里云 OSS")
+        for i in range(self.provider_combo.count()):
+            if target in self.provider_combo.itemText(i):
+                self.provider_combo.setCurrentIndex(i)
+                break
+        # 仅阿里云字段（其余图床后续补充）
+        self.field_endpoint.setText(str(settings.value("imgbed/aliyun/endpoint", "")) or "")
+        self.field_bucket.setText(str(settings.value("imgbed/aliyun/bucket", "")) or "")
+        self.field_access_id.setText(str(settings.value("imgbed/aliyun/accessKeyId", "")) or "")
+        self.field_access_secret.setText(str(settings.value("imgbed/aliyun/accessKeySecret", "")) or "")
+        # 状态提示
+        if any([self.field_bucket.text(), self.field_endpoint.text(), self.field_access_id.text()]):
+            self.status_chip.setText("已加载配置")
+        else:
+            self.status_chip.setText("未测试")
     
     # === 业务：保存配置到 QSettings ===
     def _provider_key(self) -> str:
@@ -1729,15 +1883,37 @@ class ImageBedDialog(QDialog):
 
     def _normalize_aliyun_endpoint(self, region_prefix: str) -> str:
         rp = region_prefix.strip()
-        # 允许用户直接填完整域名；若已包含 http 则直接返回
+        if rp == "":
+            return ""
+        # 支持 @ 前缀：表示“按原样使用”
+        if rp.startswith("@"):
+            rp = rp[1:].strip()
+        # 已是完整地址
         if rp.startswith("http://") or rp.startswith("https://"):
             return rp
-        # 只填了地域前缀：拼为 https://<prefix>.aliyuncs.com
+        # 已包含域名但无协议
+        if "aliyuncs.com" in rp:
+            return f"https://{rp}"
+        # 只填地域前缀
         return f"https://{rp}.aliyuncs.com"
 
     def on_save(self):
         settings = QSettings("MdImgConverter", "Settings")
         prov = self._provider_key()
+        # 若填写了阿里云字段但未选择阿里云，自动切换为阿里云
+        if prov != "aliyun_oss":
+            if any([
+                self.field_endpoint.text().strip(),
+                self.field_bucket.text().strip(),
+                self.field_access_id.text().strip(),
+                self.field_access_secret.text().strip(),
+            ]):
+                prov = "aliyun_oss"
+                # 同步下拉框选择
+                for i in range(self.provider_combo.count()):
+                    if "阿里云 OSS" in self.provider_combo.itemText(i):
+                        self.provider_combo.setCurrentIndex(i)
+                        break
         settings.setValue("imgbed/provider", prov)
         # 是否启用自动上传
         # 强制启用自动上传
@@ -1752,6 +1928,11 @@ class ImageBedDialog(QDialog):
             # 路径前缀默认 images
             if settings.value("imgbed/aliyun/prefix", "") in (None, ""):
                 settings.setValue("imgbed/aliyun/prefix", "images")
+        # 立即落盘，避免下次打开读取到旧值
+        try:
+            settings.sync()
+        except Exception:
+            pass
         self.status_chip.setText("已保存（未测试）")
         self.accept()
 
@@ -1792,6 +1973,32 @@ class ImageBedDialog(QDialog):
         except Exception as e:
             self.status_chip.setText("测试失败")
             QMessageBox.critical(self, "测试失败", str(e))
+    
+    def on_clear(self):
+        """清空当前已保存的图床配置（imgbed 分组）并清空表单。"""
+        settings = QSettings("MdImgConverter", "Settings")
+        try:
+            settings.beginGroup("imgbed")
+            settings.remove("")  # 清空整个分组
+            settings.endGroup()
+        except Exception:
+            try:
+                settings.remove("imgbed")
+            except Exception:
+                pass
+        try:
+            settings.sync()
+        except Exception:
+            pass
+        # 清空表单
+        try:
+            self.field_endpoint.clear()
+            self.field_bucket.clear()
+            self.field_access_id.clear()
+            self.field_access_secret.clear()
+        except Exception:
+            pass
+        self.status_chip.setText("已清空")
     
     def on_convert_clicked(self):
         """转换按钮点击事件（合并流程：先转换后上传）"""
