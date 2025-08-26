@@ -1,4 +1,4 @@
-## <img src="image/logo.png" width="64" height="64" alt="Meowdown Logo" style="vertical-align: middle;">   Meowdown · MdImgConverter
+<img src="image/logo.png" width="64" height="64" alt="Meowdown Logo" style="vertical-align: middle;">  # Meowdown · MdImgConverter
 
 把 Markdown 里的图片一键变身 WebP，还能自动上传到图床！(=^･ω･^=)✧
 
