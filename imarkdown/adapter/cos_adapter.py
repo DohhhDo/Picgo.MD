@@ -47,15 +47,15 @@ class CosAdapter(BaseMdAdapter):
 
         try:
             from qcloud_cos import CosConfig, CosS3Client
-            
+
             config = CosConfig(
                 Region=values["region"],
                 SecretId=values["secret_id"],
                 SecretKey=values["secret_key"],
-                Scheme=values.get("url_prefix", "https")
+                Scheme=values.get("url_prefix", "https"),
             )
             values["client"] = CosS3Client(config)
-            
+
         except ImportError:
             raise ValueError(
                 "Could not import qcloud_cos python package. "
@@ -68,20 +68,21 @@ class CosAdapter(BaseMdAdapter):
             self.url_prefix = "https"
         else:
             self.url_prefix = "http"
-        
+
         # Update client with new scheme
         try:
             from qcloud_cos import CosConfig, CosS3Client
+
             config = CosConfig(
                 Region=values["region"],
                 SecretId=values["secret_id"],
                 SecretKey=values["secret_key"],
-                Scheme=self.url_prefix
+                Scheme=self.url_prefix,
             )
             values["client"] = CosS3Client(config)
         except ImportError:
             pass
-        
+
         return v
 
     def _join_key(self, key: str) -> str:
@@ -94,12 +95,10 @@ class CosAdapter(BaseMdAdapter):
     def upload(self, key: str, file):
         """Upload file to Tencent Cloud COS"""
         final_key = self._join_key(key)
-        
+
         try:
             response = self.client.put_object(
-                Bucket=self.bucket,
-                Key=final_key,
-                Body=file
+                Bucket=self.bucket, Key=final_key, Body=file
             )
             logger.info(f"[imarkdown cos adapter] uploaded {final_key} successfully")
         except Exception as e:
@@ -109,11 +108,10 @@ class CosAdapter(BaseMdAdapter):
     def get_replaced_url(self, key):
         """Get the final URL for the uploaded object"""
         final_key = self._join_key(key)
-        
+
         if self.custom_domain:
             # Use custom domain if provided
             return f"{self.custom_domain.rstrip('/')}/{final_key}"
-        
+
         # Use standard COS domain
         return f"{self.url_prefix}://{self.bucket}.cos.{self.region}.myqcloud.com/{final_key}"
-

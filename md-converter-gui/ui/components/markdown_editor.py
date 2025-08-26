@@ -1,5 +1,5 @@
-from PyQt6.QtWidgets import QTextEdit
 from PyQt6.QtGui import QFont
+from PyQt6.QtWidgets import QTextEdit
 
 
 class Win11MarkdownEditor(QTextEdit):
@@ -17,8 +17,12 @@ class Win11MarkdownEditor(QTextEdit):
     def detect_system_theme(self):
         try:
             import winreg
+
             registry = winreg.ConnectRegistry(None, winreg.HKEY_CURRENT_USER)
-            key = winreg.OpenKey(registry, r"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize")
+            key = winreg.OpenKey(
+                registry,
+                r"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
+            )
             value, _ = winreg.QueryValueEx(key, "AppsUseLightTheme")
             winreg.CloseKey(key)
             return value == 0
@@ -46,5 +50,3 @@ class Win11MarkdownEditor(QTextEdit):
                 QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { border: none; background: none; }
                 """
             )
-
-

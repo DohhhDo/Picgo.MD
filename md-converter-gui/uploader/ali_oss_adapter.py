@@ -54,7 +54,5 @@ class AliOssAdapter:
             return f"{self.custom_domain}/{key}"
         # 标准公网访问域名：{bucket}.{endpoint_host}/{key}
         # endpoint 形如 https://oss-cn-hangzhou.aliyuncs.com
-        host = self.endpoint.split('://', 1)[-1]
+        host = self.endpoint.split("://", 1)[-1]
         return f"https://{self.bucket_name}.{host}/{key}"
-
-

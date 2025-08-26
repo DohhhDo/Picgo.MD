@@ -50,26 +50,26 @@ class S3Adapter(BaseMdAdapter):
         try:
             import boto3
             from botocore.config import Config
-            
+
             # Prepare boto3 client configuration
             session = boto3.Session(
                 aws_access_key_id=values["access_key"],
                 aws_secret_access_key=values["secret_key"],
-                region_name=values.get("region")
+                region_name=values.get("region"),
             )
-            
+
             client_kwargs = {}
-            
+
             # Add endpoint URL if provided (for S3-compatible services)
             if values.get("endpoint"):
                 client_kwargs["endpoint_url"] = values["endpoint"]
-            
+
             # Configure path style if requested
             if values.get("path_style", False):
                 client_kwargs["config"] = Config(s3={"addressing_style": "path"})
-            
+
             values["client"] = session.client("s3", **client_kwargs)
-            
+
         except ImportError:
             raise ValueError(
                 "Could not import boto3 python package. "
@@ -87,15 +87,13 @@ class S3Adapter(BaseMdAdapter):
     def upload(self, key: str, file):
         """Upload file to S3 or S3-compatible service"""
         final_key = self._join_key(key)
-        
+
         try:
             response = self.client.put_object(
-                Bucket=self.bucket,
-                Key=final_key,
-                Body=file
+                Bucket=self.bucket, Key=final_key, Body=file
             )
             logger.info(f"[imarkdown s3 adapter] uploaded {final_key} successfully")
-            
+
         except Exception as e:
             logger.error(f"[imarkdown s3 adapter] upload failed: {e}")
             raise
@@ -103,15 +101,15 @@ class S3Adapter(BaseMdAdapter):
     def get_replaced_url(self, key):
         """Get the final URL for the uploaded object"""
         final_key = self._join_key(key)
-        
+
         if self.custom_domain:
             # Use custom domain if provided
             protocol = "https" if self.use_https else "http"
             return f"{protocol}://{self.custom_domain.strip('/')}/{final_key}"
-        
+
         # Construct standard S3 URL
         protocol = "https" if self.use_https else "http"
-        
+
         if self.endpoint:
             # For S3-compatible services with custom endpoints
             endpoint_host = self.endpoint.replace("https://", "").replace("http://", "")
@@ -119,7 +117,7 @@ class S3Adapter(BaseMdAdapter):
                 return f"{protocol}://{endpoint_host}/{self.bucket}/{final_key}"
             else:
                 return f"{protocol}://{self.bucket}.{endpoint_host}/{final_key}"
-        
+
         # Standard AWS S3 URL
         if self.region and self.region != "us-east-1":
             if self.path_style:
@@ -132,4 +130,3 @@ class S3Adapter(BaseMdAdapter):
                 return f"{protocol}://s3.amazonaws.com/{self.bucket}/{final_key}"
             else:
                 return f"{protocol}://{self.bucket}.s3.amazonaws.com/{final_key}"
-

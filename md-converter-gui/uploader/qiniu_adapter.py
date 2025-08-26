@@ -27,7 +27,7 @@ class QiniuAdapter:
     ) -> None:
         if Auth is None or put_data is None:
             raise ImportError("缺少依赖：pip install qiniu")
-            
+
         self.access_key = access_key
         self.secret_key = secret_key
         self.bucket = bucket
@@ -47,24 +47,28 @@ class QiniuAdapter:
         """上传本地文件，返回可访问 URL"""
         final_key = self._join_key(key)
         token = self.auth.upload_token(self.bucket, final_key)
-        
+
         with open(local_path, "rb") as f:
             ret, info = put_data(token, final_key, f.read())
-            
+
         if info.status_code != 200:
-            raise Exception(f"Upload failed with status {info.status_code}: {info.text_body}")
-            
+            raise Exception(
+                f"Upload failed with status {info.status_code}: {info.text_body}"
+            )
+
         return self._build_url(final_key)
 
     def upload_bytes(self, data: bytes, key: str) -> str:
         final_key = self._join_key(key)
         token = self.auth.upload_token(self.bucket, final_key)
-        
+
         ret, info = put_data(token, final_key, data)
-        
+
         if info.status_code != 200:
-            raise Exception(f"Upload failed with status {info.status_code}: {info.text_body}")
-            
+            raise Exception(
+                f"Upload failed with status {info.status_code}: {info.text_body}"
+            )
+
         return self._build_url(final_key)
 
     def _build_url(self, key: str) -> str:

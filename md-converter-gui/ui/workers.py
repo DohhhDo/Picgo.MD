@@ -1,5 +1,6 @@
-from PyQt6.QtCore import QThread, pyqtSignal, QSettings
 import os
+
+from PyQt6.QtCore import QSettings, QThread, pyqtSignal
 
 try:
     from uploader.manager import UploadManager
@@ -14,6 +15,7 @@ except Exception:
 
 class ConversionWorker(QThread):
     """图片转换工作线程"""
+
     progress_updated = pyqtSignal(int, str)
     conversion_finished = pyqtSignal(str, int, dict)  # new_md, count, stats
     conversion_error = pyqtSignal(str)
@@ -46,6 +48,7 @@ class ConversionWorker(QThread):
 
 class UploadWorker(QThread):
     """后台上传线程：逐图上传并回写"""
+
     progress_updated = pyqtSignal(int, str)
     finished_with_mapping = pyqtSignal(dict)
     error = pyqtSignal(str)
@@ -86,16 +89,19 @@ class UploadWorker(QThread):
                     fn = os.path.basename(p)
                     url = adapter.upload_file(p, fn)
                     mapping[p] = url
-                    self.progress_updated.emit(int(i / total * 100), f"上传 {i}/{total}：{fn}")
+                    self.progress_updated.emit(
+                        int(i / total * 100), f"上传 {i}/{total}：{fn}"
+                    )
                 except Exception:
                     try:
                         print(f"[Worker] upload failed for {p}", flush=True)
                     except Exception:
                         pass
-                    self.progress_updated.emit(int(i / total * 100), f"上传失败 {i}/{total}：{os.path.basename(p)}")
+                    self.progress_updated.emit(
+                        int(i / total * 100),
+                        f"上传失败 {i}/{total}：{os.path.basename(p)}",
+                    )
                     continue
             self.finished_with_mapping.emit(mapping)
         except Exception as e:
             self.error.emit(str(e))
-
-

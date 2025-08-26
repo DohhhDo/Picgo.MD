@@ -28,7 +28,7 @@ class CosAdapter:
     ) -> None:
         if CosConfig is None or CosS3Client is None:
             raise ImportError("缺少依赖：pip install cos-python-sdk-v5")
-            
+
         self.secret_id = secret_id
         self.secret_key = secret_key
         self.bucket = bucket
@@ -42,7 +42,7 @@ class CosAdapter:
             Region=self.region,
             SecretId=self.secret_id,
             SecretKey=self.secret_key,
-            Scheme=scheme
+            Scheme=scheme,
         )
         self.client = CosS3Client(config)
 
@@ -56,26 +56,17 @@ class CosAdapter:
         """上传本地文件，返回可访问 URL"""
         final_key = self._join_key(key)
         with open(local_path, "rb") as f:
-            self.client.put_object(
-                Bucket=self.bucket,
-                Key=final_key,
-                Body=f
-            )
+            self.client.put_object(Bucket=self.bucket, Key=final_key, Body=f)
         return self._build_url(final_key)
 
     def upload_bytes(self, data: bytes, key: str) -> str:
         final_key = self._join_key(key)
-        self.client.put_object(
-            Bucket=self.bucket,
-            Key=final_key,
-            Body=data
-        )
+        self.client.put_object(Bucket=self.bucket, Key=final_key, Body=data)
         return self._build_url(final_key)
 
     def _build_url(self, key: str) -> str:
         if self.custom_domain:
             return f"{self.custom_domain}/{key}"
-        
+
         protocol = "https" if self.use_https else "http"
         return f"{protocol}://{self.bucket}.cos.{self.region}.myqcloud.com/{key}"
-

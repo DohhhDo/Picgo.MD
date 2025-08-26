@@ -44,10 +44,10 @@ class QiniuAdapter(BaseMdAdapter):
 
         try:
             from qiniu import Auth, BucketManager
-            
+
             values["auth"] = Auth(values["access_key"], values["secret_key"])
             values["bucket_manager"] = BucketManager(values["auth"])
-            
+
         except ImportError:
             raise ValueError(
                 "Could not import qiniu python package. "
@@ -65,21 +65,23 @@ class QiniuAdapter(BaseMdAdapter):
     def upload(self, key: str, file):
         """Upload file to Qiniu Kodo"""
         final_key = self._join_key(key)
-        
+
         try:
             from qiniu import put_data
-            
+
             # Generate upload token
             token = self.auth.upload_token(self.bucket, final_key)
-            
+
             # Upload file
             ret, info = put_data(token, final_key, file)
-            
+
             if info.status_code != 200:
-                raise Exception(f"Upload failed with status {info.status_code}: {info.text_body}")
-                
+                raise Exception(
+                    f"Upload failed with status {info.status_code}: {info.text_body}"
+                )
+
             logger.info(f"[imarkdown qiniu adapter] uploaded {final_key} successfully")
-            
+
         except Exception as e:
             logger.error(f"[imarkdown qiniu adapter] upload failed: {e}")
             raise
@@ -87,6 +89,6 @@ class QiniuAdapter(BaseMdAdapter):
     def get_replaced_url(self, key):
         """Get the final URL for the uploaded object"""
         final_key = self._join_key(key)
-        
+
         protocol = "https" if self.use_https else "http"
         return f"{protocol}://{self.domain.strip('/')}/{final_key}"

@@ -10,9 +10,9 @@ from PyQt6.QtCore import QSettings
 
 from .ali_oss_adapter import AliOssAdapter
 from .cos_adapter import CosAdapter
+from .github_adapter import GitHubAdapter
 from .qiniu_adapter import QiniuAdapter
 from .s3_adapter import S3Adapter
-from .github_adapter import GitHubAdapter
 
 
 class UploadManager:
@@ -24,14 +24,21 @@ class UploadManager:
     def _load_aliyun_config(self) -> Dict[str, str]:
         cfg = {
             "access_key_id": self.settings.value("imgbed/aliyun/accessKeyId", ""),
-            "access_key_secret": self.settings.value("imgbed/aliyun/accessKeySecret", ""),
+            "access_key_secret": self.settings.value(
+                "imgbed/aliyun/accessKeySecret", ""
+            ),
             "bucket_name": self.settings.value("imgbed/aliyun/bucket", ""),
             "endpoint": self.settings.value("imgbed/aliyun/endpoint", ""),
-            "storage_path_prefix": self.settings.value("imgbed/aliyun/prefix", "images"),
+            "storage_path_prefix": self.settings.value(
+                "imgbed/aliyun/prefix", "images"
+            ),
             "custom_domain": self.settings.value("imgbed/aliyun/customDomain", ""),
         }
         try:
-            print(f"[UploadManager] cfg loaded: provider={self.settings.value('imgbed/provider','')} enabled={self.settings.value('imgbed/enabled', True, type=bool)}", flush=True)
+            print(
+                f"[UploadManager] cfg loaded: provider={self.settings.value('imgbed/provider','')} enabled={self.settings.value('imgbed/enabled', True, type=bool)}",
+                flush=True,
+            )
         except Exception:
             pass
         return cfg
@@ -77,19 +84,23 @@ class UploadManager:
             "repo": self.settings.value("imgbed/github/repo", ""),
             "branch": self.settings.value("imgbed/github/branch", "main"),
             "path_prefix": self.settings.value("imgbed/github/pathPrefix", ""),
-            "storage_path_prefix": self.settings.value("imgbed/github/prefix", "images"),
+            "storage_path_prefix": self.settings.value(
+                "imgbed/github/prefix", "images"
+            ),
             "custom_domain": self.settings.value("imgbed/github/customDomain", ""),
-            "use_jsdelivr": self.settings.value("imgbed/github/useJsdelivr", False, type=bool),
+            "use_jsdelivr": self.settings.value(
+                "imgbed/github/useJsdelivr", False, type=bool
+            ),
         }
 
     def upload_webps(self, local_paths: List[str]) -> Dict[str, str]:
         """上传本地 webp 文件，返回 {local_path: remote_url}"""
         provider = self.settings.value("imgbed/provider", "")
         enabled = self.settings.value("imgbed/enabled", True, type=bool)
-        
+
         if not enabled:
             return {}
-            
+
         adapter = self._get_adapter_by_provider(provider)
         if not adapter:
             return {}
@@ -111,15 +122,27 @@ class UploadManager:
         try:
             if provider == "aliyun_oss":
                 cfg = self._load_aliyun_config()
-                if all(cfg.get(k) for k in ["access_key_id", "access_key_secret", "bucket_name", "endpoint"]):
+                if all(
+                    cfg.get(k)
+                    for k in [
+                        "access_key_id",
+                        "access_key_secret",
+                        "bucket_name",
+                        "endpoint",
+                    ]
+                ):
                     return AliOssAdapter(**cfg)
             elif provider == "cos_v5":
                 cfg = self._load_cos_config()
-                if all(cfg.get(k) for k in ["secret_id", "secret_key", "bucket", "region"]):
+                if all(
+                    cfg.get(k) for k in ["secret_id", "secret_key", "bucket", "region"]
+                ):
                     return CosAdapter(**cfg)
             elif provider == "qiniu":
                 cfg = self._load_qiniu_config()
-                if all(cfg.get(k) for k in ["access_key", "secret_key", "bucket", "domain"]):
+                if all(
+                    cfg.get(k) for k in ["access_key", "secret_key", "bucket", "domain"]
+                ):
                     return QiniuAdapter(**cfg)
             elif provider == "s3":
                 cfg = self._load_s3_config()
@@ -137,17 +160,13 @@ class UploadManager:
     def get_adapter_if_enabled(self):
         provider = self.settings.value("imgbed/provider", "")
         enabled = self.settings.value("imgbed/enabled", True, type=bool)
-        
+
         if not enabled:
             return None
-            
+
         return self._get_adapter_by_provider(provider)
 
     # 供"手动上传"按钮使用：忽略是否启用开关，只要配置存在即可返回适配器
     def get_adapter(self):
         provider = self.settings.value("imgbed/provider", "")
         return self._get_adapter_by_provider(provider)
-
-
-
-

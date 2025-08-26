@@ -12,20 +12,19 @@ def main():
         "storage_path_prefix": "images",  # 可选：存储路径前缀
         "use_https": True,  # 是否使用HTTPS
     }
-    
+
     # 创建适配器
     adapter = QiniuAdapter(**qiniu_config)
-    
+
     # 创建转换器
     md_converter = MdImageConverter(adapter=adapter)
-    
+
     # 处理Markdown文件
     md_file = MdFile(name="test.md")
     md_converter.convert(md_file)
-    
+
     print("转换完成！图片已上传到七牛云Kodo")
 
 
 if __name__ == "__main__":
     main()
-

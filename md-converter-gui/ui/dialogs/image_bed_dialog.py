@@ -1,9 +1,19 @@
-from PyQt6.QtWidgets import (
-    QDialog, QVBoxLayout, QHBoxLayout, QLabel, QComboBox, QTabWidget,
-    QWidget, QLineEdit, QScrollArea, QDialogButtonBox, QPushButton,
-    QMessageBox, QCheckBox
-)
 from PyQt6.QtCore import QSettings
+from PyQt6.QtWidgets import (
+    QCheckBox,
+    QComboBox,
+    QDialog,
+    QDialogButtonBox,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QMessageBox,
+    QPushButton,
+    QScrollArea,
+    QTabWidget,
+    QVBoxLayout,
+    QWidget,
+)
 
 
 class ImageBedDialog(QDialog):
@@ -23,17 +33,28 @@ class ImageBedDialog(QDialog):
         root = QVBoxLayout(self)
         top = QHBoxLayout()
         top.addWidget(QLabel("图床："))
-        self.provider_combo = QComboBox(); self.provider_combo.addItems([
-            "七牛 v1.0","腾讯云 COS v4 v1.1","腾讯云 COS v5 v1.5.0",
-            "又拍云 v1.2.0","GitHub v1.5.0","SM.MS V2 v2.3.0-beta.0",
-            "阿里云 OSS v1.6.0","Imgur v1.6.0",
-        ])
-        top.addWidget(self.provider_combo); top.addStretch();
-        self.status_chip = QLabel("未测试"); top.addWidget(self.status_chip)
+        self.provider_combo = QComboBox()
+        self.provider_combo.addItems(
+            [
+                "七牛 v1.0",
+                "腾讯云 COS v4 v1.1",
+                "腾讯云 COS v5 v1.5.0",
+                "又拍云 v1.2.0",
+                "GitHub v1.5.0",
+                "SM.MS V2 v2.3.0-beta.0",
+                "阿里云 OSS v1.6.0",
+                "Imgur v1.6.0",
+            ]
+        )
+        top.addWidget(self.provider_combo)
+        top.addStretch()
+        self.status_chip = QLabel("未测试")
+        top.addWidget(self.status_chip)
         root.addLayout(top)
 
         self.tabs = QTabWidget(self)
-        self.tab_status = QWidget(); self.tab_config = QWidget()
+        self.tab_status = QWidget()
+        self.tab_config = QWidget()
         self.tabs.addTab(self.tab_status, "选择与状态")
         self.tabs.addTab(self.tab_config, "凭据与配置")
         root.addWidget(self.tabs)
@@ -42,23 +63,39 @@ class ImageBedDialog(QDialog):
         st.addWidget(QLabel("说明：选择图床后，可在下方“保存”并稍后进行上传测试。"))
         st.addStretch()
 
-        scroll = QScrollArea(self.tab_config); scroll.setWidgetResizable(True)
-        host = QWidget(); form = QVBoxLayout(host)
-        self.field_endpoint = QLineEdit(); self.field_bucket = QLineEdit()
-        self.field_access_id = QLineEdit(); self.field_access_secret = QLineEdit(); self.field_access_secret.setEchoMode(QLineEdit.EchoMode.Password)
-        form.addWidget(QLabel("地域前缀(如 oss-cn-beijing)")); form.addWidget(self.field_endpoint)
-        form.addWidget(QLabel("Bucket/仓库")); form.addWidget(self.field_bucket)
-        form.addWidget(QLabel("AccessKey/Token")); form.addWidget(self.field_access_id)
-        form.addWidget(QLabel("Secret")); form.addWidget(self.field_access_secret)
-        form.addStretch(); scroll.setWidget(host)
-        cfg = QVBoxLayout(self.tab_config); cfg.addWidget(scroll)
+        scroll = QScrollArea(self.tab_config)
+        scroll.setWidgetResizable(True)
+        host = QWidget()
+        form = QVBoxLayout(host)
+        self.field_endpoint = QLineEdit()
+        self.field_bucket = QLineEdit()
+        self.field_access_id = QLineEdit()
+        self.field_access_secret = QLineEdit()
+        self.field_access_secret.setEchoMode(QLineEdit.EchoMode.Password)
+        form.addWidget(QLabel("地域前缀(如 oss-cn-beijing)"))
+        form.addWidget(self.field_endpoint)
+        form.addWidget(QLabel("Bucket/仓库"))
+        form.addWidget(self.field_bucket)
+        form.addWidget(QLabel("AccessKey/Token"))
+        form.addWidget(self.field_access_id)
+        form.addWidget(QLabel("Secret"))
+        form.addWidget(self.field_access_secret)
+        form.addStretch()
+        scroll.setWidget(host)
+        cfg = QVBoxLayout(self.tab_config)
+        cfg.addWidget(scroll)
 
         # 移除“高级与策略”页与自动上传开关，默认启用
 
-        btns = QDialogButtonBox(QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Close)
-        self.test_btn = QPushButton("测试上传"); btns.addButton(self.test_btn, QDialogButtonBox.ButtonRole.ActionRole)
-        self.clear_btn = QPushButton("清空"); btns.addButton(self.clear_btn, QDialogButtonBox.ButtonRole.ActionRole)
-        btns.accepted.connect(self.on_save); btns.rejected.connect(self.reject)
+        btns = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Close
+        )
+        self.test_btn = QPushButton("测试上传")
+        btns.addButton(self.test_btn, QDialogButtonBox.ButtonRole.ActionRole)
+        self.clear_btn = QPushButton("清空")
+        btns.addButton(self.clear_btn, QDialogButtonBox.ButtonRole.ActionRole)
+        btns.accepted.connect(self.on_save)
+        btns.rejected.connect(self.reject)
         self.clear_btn.clicked.connect(self.on_clear)
         root.addWidget(btns)
 
@@ -70,13 +107,20 @@ class ImageBedDialog(QDialog):
         text = self.provider_combo.currentText()
         if "阿里云" in text or "OSS" in text:
             return "aliyun_oss"
-        if "七牛" in text: return "qiniu"
-        if "腾讯云" in text and "v4" in text: return "cos_v4"
-        if "腾讯云" in text and "v5" in text: return "cos_v5"
-        if "又拍云" in text: return "upyun"
-        if "GitHub" in text: return "github"
-        if "SM.MS" in text: return "smms"
-        if "Imgur" in text: return "imgur"
+        if "七牛" in text:
+            return "qiniu"
+        if "腾讯云" in text and "v4" in text:
+            return "cos_v4"
+        if "腾讯云" in text and "v5" in text:
+            return "cos_v5"
+        if "又拍云" in text:
+            return "upyun"
+        if "GitHub" in text:
+            return "github"
+        if "SM.MS" in text:
+            return "smms"
+        if "Imgur" in text:
+            return "imgur"
         return ""
 
     def _normalize_aliyun_endpoint(self, region_prefix: str) -> str:
@@ -115,11 +159,23 @@ class ImageBedDialog(QDialog):
                 self.provider_combo.setCurrentIndex(i)
                 break
         # 预填阿里云字段
-        self.field_endpoint.setText(str(settings.value("imgbed/aliyun/endpoint", "")) or "")
+        self.field_endpoint.setText(
+            str(settings.value("imgbed/aliyun/endpoint", "")) or ""
+        )
         self.field_bucket.setText(str(settings.value("imgbed/aliyun/bucket", "")) or "")
-        self.field_access_id.setText(str(settings.value("imgbed/aliyun/accessKeyId", "")) or "")
-        self.field_access_secret.setText(str(settings.value("imgbed/aliyun/accessKeySecret", "")) or "")
-        if any([self.field_bucket.text(), self.field_endpoint.text(), self.field_access_id.text()]):
+        self.field_access_id.setText(
+            str(settings.value("imgbed/aliyun/accessKeyId", "")) or ""
+        )
+        self.field_access_secret.setText(
+            str(settings.value("imgbed/aliyun/accessKeySecret", "")) or ""
+        )
+        if any(
+            [
+                self.field_bucket.text(),
+                self.field_endpoint.text(),
+                self.field_access_id.text(),
+            ]
+        ):
             self.status_chip.setText("已加载配置")
         else:
             self.status_chip.setText("未测试")
@@ -129,12 +185,14 @@ class ImageBedDialog(QDialog):
         prov = self._provider_key()
         # 若填写了阿里云字段但未选择阿里云，自动切换为阿里云
         if prov != "aliyun_oss":
-            if any([
-                self.field_endpoint.text().strip(),
-                self.field_bucket.text().strip(),
-                self.field_access_id.text().strip(),
-                self.field_access_secret.text().strip(),
-            ]):
+            if any(
+                [
+                    self.field_endpoint.text().strip(),
+                    self.field_bucket.text().strip(),
+                    self.field_access_id.text().strip(),
+                    self.field_access_secret.text().strip(),
+                ]
+            ):
                 prov = "aliyun_oss"
                 for i in range(self.provider_combo.count()):
                     if "阿里云 OSS" in self.provider_combo.itemText(i):
@@ -147,8 +205,12 @@ class ImageBedDialog(QDialog):
             endpoint = self._normalize_aliyun_endpoint(self.field_endpoint.text())
             settings.setValue("imgbed/aliyun/endpoint", endpoint)
             settings.setValue("imgbed/aliyun/bucket", self.field_bucket.text().strip())
-            settings.setValue("imgbed/aliyun/accessKeyId", self.field_access_id.text().strip())
-            settings.setValue("imgbed/aliyun/accessKeySecret", self.field_access_secret.text().strip())
+            settings.setValue(
+                "imgbed/aliyun/accessKeyId", self.field_access_id.text().strip()
+            )
+            settings.setValue(
+                "imgbed/aliyun/accessKeySecret", self.field_access_secret.text().strip()
+            )
             if settings.value("imgbed/aliyun/prefix", "") in (None, ""):
                 settings.setValue("imgbed/aliyun/prefix", "images")
         # 立即落盘
@@ -183,5 +245,3 @@ class ImageBedDialog(QDialog):
         except Exception:
             pass
         self.status_chip.setText("已清空")
-
-

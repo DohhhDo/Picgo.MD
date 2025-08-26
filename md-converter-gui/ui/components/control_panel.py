@@ -1,6 +1,15 @@
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QSlider, QPushButton, QGridLayout, QFrame, QHBoxLayout
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
+from PyQt6.QtWidgets import (
+    QFrame,
+    QGridLayout,
+    QHBoxLayout,
+    QLabel,
+    QPushButton,
+    QSlider,
+    QVBoxLayout,
+    QWidget,
+)
 
 
 class Win11ControlPanel(QWidget):
@@ -14,8 +23,12 @@ class Win11ControlPanel(QWidget):
     def detect_system_theme(self):
         try:
             import winreg
+
             registry = winreg.ConnectRegistry(None, winreg.HKEY_CURRENT_USER)
-            key = winreg.OpenKey(registry, r"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize")
+            key = winreg.OpenKey(
+                registry,
+                r"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
+            )
             value, _ = winreg.QueryValueEx(key, "AppsUseLightTheme")
             winreg.CloseKey(key)
             return value == 0
@@ -57,12 +70,19 @@ class Win11ControlPanel(QWidget):
         main_layout.addLayout(grid)
 
         # 进度条占位 + 文本
-        self.progress_bg = QFrame(); self.progress_bg.setFixedHeight(8)
+        self.progress_bg = QFrame()
+        self.progress_bg.setFixedHeight(8)
         self.progress_bg.setStyleSheet("QFrame{background:#e5e7eb;border-radius:4px;}")
-        self.progress_fill = QFrame(); self.progress_fill.setStyleSheet("QFrame{background:#16a34a;border-radius:4px;}")
+        self.progress_fill = QFrame()
+        self.progress_fill.setStyleSheet(
+            "QFrame{background:#16a34a;border-radius:4px;}"
+        )
         self.progress_fill.setFixedWidth(0)
         main_layout.addWidget(self.progress_bg)
-        text_row = QHBoxLayout(); self.progress_text = QLabel("准备就绪"); text_row.addWidget(self.progress_text); text_row.addStretch();
+        text_row = QHBoxLayout()
+        self.progress_text = QLabel("准备就绪")
+        text_row.addWidget(self.progress_text)
+        text_row.addStretch()
         main_layout.addLayout(text_row)
 
         # 转换按钮（右侧）
@@ -84,12 +104,10 @@ class Win11ControlPanel(QWidget):
     def set_progress(self, value: int):
         self.progress_value = value
         total_width = max(1, self.progress_bg.width())
-        self.progress_fill.setFixedWidth(int((value/100)*total_width))
+        self.progress_fill.setFixedWidth(int((value / 100) * total_width))
         if value == 0:
             self.progress_text.setText("准备就绪")
         elif value >= 100:
             self.progress_text.setText("转换完成")
         else:
             self.progress_text.setText(f"转换中... {value}%")
-
-

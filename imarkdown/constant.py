@@ -6,7 +6,7 @@ class MdAdapterType(str, Enum):
     Local = "Local"
     Aliyun = "Aliyun"
     COS = "COS"
-    Qiniu = "Qiniu" 
+    Qiniu = "Qiniu"
     S3 = "S3"
     GitHub = "GitHub"
 

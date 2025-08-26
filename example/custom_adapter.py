@@ -4,11 +4,9 @@ from imarkdown import BaseMdAdapter, MdFile, MdImageConverter
 class CustomMdAdapter(BaseMdAdapter):
     name = ""
 
-    def upload(self, key: str, file):
-        ...
+    def upload(self, key: str, file): ...
 
-    def get_replaced_url(self, key):
-        ...
+    def get_replaced_url(self, key): ...
 
 
 def main():
