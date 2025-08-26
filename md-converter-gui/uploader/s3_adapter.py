@@ -109,3 +109,4 @@ class S3Adapter:
                 return f"{protocol}://s3.amazonaws.com/{self.bucket}/{key}"
             else:
                 return f"{protocol}://{self.bucket}.s3.amazonaws.com/{key}"
+

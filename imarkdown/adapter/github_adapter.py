@@ -139,3 +139,4 @@ class GitHubAdapter(BaseMdAdapter):
         
         # Use GitHub raw content URL
         return f"https://raw.githubusercontent.com/{self.owner}/{self.repo}/{self.branch}/{final_key}"
+

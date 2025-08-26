@@ -78,3 +78,4 @@ class CosAdapter:
         
         protocol = "https" if self.use_https else "http"
         return f"{protocol}://{self.bucket}.cos.{self.region}.myqcloud.com/{key}"
+

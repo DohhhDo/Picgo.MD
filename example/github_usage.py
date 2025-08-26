@@ -5,7 +5,7 @@ from imarkdown.adapter.github_adapter import GitHubAdapter
 def main():
     """GitHub仓库适配器使用示例"""
     github_config = {
-        "token": "ghp_your_personal_access_token",  # GitHub个人访问令牌
+        "token": "your_github_token",  # GitHub个人访问令牌
         "owner": "your-username",  # GitHub用户名或组织名
         "repo": "your-repo-name",  # 仓库名
         "branch": "main",  # 分支名，默认为main
@@ -43,3 +43,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

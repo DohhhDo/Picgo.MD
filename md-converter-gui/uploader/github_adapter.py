@@ -105,3 +105,4 @@ class GitHubAdapter:
             return f"https://cdn.jsdelivr.net/gh/{self.owner}/{self.repo}@{self.branch}/{key}"
         
         return f"https://raw.githubusercontent.com/{self.owner}/{self.repo}/{self.branch}/{key}"
+

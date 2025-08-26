@@ -132,3 +132,4 @@ class S3Adapter(BaseMdAdapter):
                 return f"{protocol}://s3.amazonaws.com/{self.bucket}/{final_key}"
             else:
                 return f"{protocol}://{self.bucket}.s3.amazonaws.com/{final_key}"
+
