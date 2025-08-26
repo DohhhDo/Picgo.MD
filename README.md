@@ -16,11 +16,11 @@
 ---
 
 ## 🚀 快速上手
-- 运行源码：
-```bash
-pip install -r requirements.txt
-python md-converter-gui/main.py
-```
+- 前往仓库的 Releases 页面，下载与你系统匹配的版本（推荐 onedir 目录版）
+- Windows（onedir）：解压后运行 `dist/MdImgConverter/MdImgConverter.exe`
+- Windows（onefile）：下载 `MdImgConverter.exe` 直接双击运行
+- 首次运行若被 SmartScreen 拦截，点击“更多信息”→“仍要运行”
+- 想用源码运行？见 `coder-README.md`
 
 ---
 
