@@ -1092,10 +1092,10 @@ class Win11MainWindow(QMainWindow):
             return Path(__file__).resolve().parents[2]
 
     def _load_app_icon(self) -> QIcon | None:
-        """加载应用图标 pictures/Meowdown.ico。找不到则返回 None。"""
+        """加载应用图标 pictures/app_icon.ico。找不到则返回 None。"""
         try:
             base_dir = self._resolve_base_dir()
-            ico_path = base_dir / "pictures" / "Meowdown.ico"
+            ico_path = base_dir / "pictures" / "app_icon.ico"
             if ico_path.exists():
                 return QIcon(str(ico_path))
         except Exception:
