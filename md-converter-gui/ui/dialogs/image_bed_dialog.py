@@ -13,6 +13,11 @@ class ImageBedDialog(QDialog):
         self.setModal(False)
         self.setMinimumSize(560, 420)
         self._build_ui()
+        # 初始预填设置
+        try:
+            self.load_from_settings()
+        except Exception:
+            pass
 
     def _build_ui(self):
         root = QVBoxLayout(self)
@@ -52,7 +57,9 @@ class ImageBedDialog(QDialog):
 
         btns = QDialogButtonBox(QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Close)
         self.test_btn = QPushButton("测试上传"); btns.addButton(self.test_btn, QDialogButtonBox.ButtonRole.ActionRole)
+        self.clear_btn = QPushButton("清空"); btns.addButton(self.clear_btn, QDialogButtonBox.ButtonRole.ActionRole)
         btns.accepted.connect(self.on_save); btns.rejected.connect(self.reject)
+        self.clear_btn.clicked.connect(self.on_clear)
         root.addWidget(btns)
 
     def apply_theme(self, dark: bool):
@@ -74,13 +81,65 @@ class ImageBedDialog(QDialog):
 
     def _normalize_aliyun_endpoint(self, region_prefix: str) -> str:
         rp = region_prefix.strip()
+        if rp == "":
+            return ""
+        # 支持 @ 前缀：按原样使用
+        if rp.startswith("@"):
+            rp = rp[1:].strip()
+        # 已包含协议
         if rp.startswith("http://") or rp.startswith("https://"):
             return rp
+        # 包含域名但无协议
+        if "aliyuncs.com" in rp:
+            return f"https://{rp}"
+        # 仅地域前缀
         return f"https://{rp}.aliyuncs.com"
+
+    def load_from_settings(self):
+        """从 QSettings 读取并预填表单。"""
+        settings = QSettings("MdImgConverter", "Settings")
+        prov = settings.value("imgbed/provider", "aliyun_oss") or "aliyun_oss"
+        text_map = {
+            "aliyun_oss": "阿里云 OSS",
+            "qiniu": "七牛",
+            "cos_v4": "腾讯云 COS v4",
+            "cos_v5": "腾讯云 COS v5",
+            "upyun": "又拍云",
+            "github": "GitHub",
+            "smms": "SM.MS",
+            "imgur": "Imgur",
+        }
+        target = text_map.get(prov, "阿里云 OSS")
+        for i in range(self.provider_combo.count()):
+            if target in self.provider_combo.itemText(i):
+                self.provider_combo.setCurrentIndex(i)
+                break
+        # 预填阿里云字段
+        self.field_endpoint.setText(str(settings.value("imgbed/aliyun/endpoint", "")) or "")
+        self.field_bucket.setText(str(settings.value("imgbed/aliyun/bucket", "")) or "")
+        self.field_access_id.setText(str(settings.value("imgbed/aliyun/accessKeyId", "")) or "")
+        self.field_access_secret.setText(str(settings.value("imgbed/aliyun/accessKeySecret", "")) or "")
+        if any([self.field_bucket.text(), self.field_endpoint.text(), self.field_access_id.text()]):
+            self.status_chip.setText("已加载配置")
+        else:
+            self.status_chip.setText("未测试")
 
     def on_save(self):
         settings = QSettings("MdImgConverter", "Settings")
         prov = self._provider_key()
+        # 若填写了阿里云字段但未选择阿里云，自动切换为阿里云
+        if prov != "aliyun_oss":
+            if any([
+                self.field_endpoint.text().strip(),
+                self.field_bucket.text().strip(),
+                self.field_access_id.text().strip(),
+                self.field_access_secret.text().strip(),
+            ]):
+                prov = "aliyun_oss"
+                for i in range(self.provider_combo.count()):
+                    if "阿里云 OSS" in self.provider_combo.itemText(i):
+                        self.provider_combo.setCurrentIndex(i)
+                        break
         settings.setValue("imgbed/provider", prov)
         # 强制启用自动上传
         settings.setValue("imgbed/enabled", True)
@@ -92,6 +151,37 @@ class ImageBedDialog(QDialog):
             settings.setValue("imgbed/aliyun/accessKeySecret", self.field_access_secret.text().strip())
             if settings.value("imgbed/aliyun/prefix", "") in (None, ""):
                 settings.setValue("imgbed/aliyun/prefix", "images")
+        # 立即落盘
+        try:
+            settings.sync()
+        except Exception:
+            pass
         self.accept()
+
+    def on_clear(self):
+        """清空QSettings中的 imgbed 分组，并清空表单。"""
+        settings = QSettings("MdImgConverter", "Settings")
+        try:
+            settings.beginGroup("imgbed")
+            settings.remove("")
+            settings.endGroup()
+        except Exception:
+            try:
+                settings.remove("imgbed")
+            except Exception:
+                pass
+        try:
+            settings.sync()
+        except Exception:
+            pass
+        # 清空表单并状态
+        try:
+            self.field_endpoint.clear()
+            self.field_bucket.clear()
+            self.field_access_id.clear()
+            self.field_access_secret.clear()
+        except Exception:
+            pass
+        self.status_chip.setText("已清空")
 
 
