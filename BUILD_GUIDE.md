@@ -22,7 +22,31 @@ pip show pyinstaller
 
 ## 🔨 打包步骤
 
-### 方法一：使用小体积版本（推荐）
+### 方法一：使用优化版本（强烈推荐）⭐
+
+**一键自动化打包：**
+```bash
+# Windows
+.\build_optimized.bat
+
+# Linux/macOS  
+chmod +x build_optimized.sh
+./build_optimized.sh
+```
+
+**手动打包：**
+```bash
+# 1. 清理之前的构建
+rmdir /s build dist 2>nul
+
+# 2. 使用优化配置打包
+pyinstaller MdImgConverter-optimized.spec --clean
+
+# 3. 检查输出
+dir dist\MdImgConverter\
+```
+
+### 方法二：使用小体积版本
 
 ```bash
 # 1. 清理之前的构建
@@ -35,7 +59,7 @@ pyinstaller MdImgConverter-small.spec --clean
 dir dist\MdImgConverter\
 ```
 
-### 方法二：使用标准版本
+### 方法三：使用标准版本
 
 ```bash
 # 1. 清理之前的构建  
@@ -78,16 +102,44 @@ cd dist\MdImgConverter
 - 窗口左上角应显示新图标
 - Alt+Tab 切换时应显示新图标
 
-## ⚡ 优化选项
+## ⚡ 优化特性对比
 
-### 启用 UPX 压缩（已配置）
-小体积版本已启用 UPX 压缩，可减小约 30-50% 的文件大小。
+### 📊 版本对比表
 
-### 排除不需要的模块（已配置）
-配置文件已排除：
-- Qt 不需要的模块
-- 科学计算库（numpy, scipy等）
-- 开发工具（jupyter, pdb等）
+| 特性 | 标准版 | 小体积版 | 优化版 ⭐ |
+|------|--------|----------|----------|
+| 文件大小 | ~150MB | ~80MB | ~60MB |
+| 启动速度 | 普通 | 较快 | 最快 |
+| UPX压缩 | ✅ | ✅ | ✅ |
+| 模块排除 | 基础 | 进阶 | 精确 |
+| 自动化脚本 | ❌ | ❌ | ✅ |
+| 文件过滤 | ❌ | ❌ | ✅ |
+| 平台兼容 | Windows | Windows | 全平台 |
+
+### 🚀 优化版本特色功能
+
+**智能模块排除：**
+- 精确排除不需要的PyQt6模块（如WebEngine、3D等）
+- 排除科学计算库（numpy, scipy, matplotlib等）
+- 排除开发调试工具（jupyter, pdb, unittest等）
+- 排除其他GUI库（tkinter等）
+
+**文件体积优化：**
+- 启用最高级别的字节码优化（optimize=2）
+- 智能文件过滤，移除测试文件、文档文件等
+- UPX压缩，排除关键DLL避免运行时错误
+- 符号剥离减少文件体积
+
+**自动化构建：**
+- 一键式打包脚本（Windows/Linux/macOS）
+- 自动环境检查和依赖安装
+- 构建进度显示和错误诊断
+- 自动测试和体积统计
+
+**跨平台支持：**
+- Windows批处理脚本（.bat）
+- Linux/macOS Shell脚本（.sh）
+- 平台特定的优化配置
 
 ## 🐛 常见问题
 

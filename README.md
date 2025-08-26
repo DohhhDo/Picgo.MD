@@ -103,4 +103,41 @@ MIT. 欢迎二次开发与同人创作（记得保留署名喵）。
 
 ---
 
-想看技术细节、打包命令、接口扩展？请移步 `coder-README.md`。
+## 📚 文档导航
+
+### 🎯 用户文档
+- **[README.md](README.md)** - 项目主页，快速上手指南
+- **[BUILD_GUIDE.md](BUILD_GUIDE.md)** - 详细的构建和打包指南
+- **[PACKAGING_COMPARISON.md](PACKAGING_COMPARISON.md)** - 打包配置对比分析
+
+### 🔧 开发者文档
+- **[coder-README.md](coder-README.md)** - 技术文档，开发环境设置
+- **[coder-picgo-README.md](coder-picgo-README.md)** - 图床扩展开发指南
+- **[imd-README.md](imd-README.md)** - imarkdown 核心库详细文档
+- **[imd-README_zh.md](imd-README_zh.md)** - imarkdown 中文版文档
+
+### 🎨 设计资源
+- **[ICON_MANIFEST.md](ICON_MANIFEST.md)** - 图标使用清单和配置说明
+- **[icons/README.md](icons/README.md)** - 多平台图标包详细说明
+
+### 📊 项目管理
+- **[meum-README.md](meum-README.md)** - 完整项目目录结构说明
+- **[图床扩展完成总结.md](图床扩展完成总结.md)** - 图床功能扩展开发总结
+
+### 🧪 测试文档
+- **[md-converter-gui/test_images.md](md-converter-gui/test_images.md)** - GUI测试用例
+- **[tests/](tests/)** - 各种测试用Markdown文件
+
+### 📦 第三方集成
+- **[picgo/README.md](picgo/README.md)** - PicGo 相关功能说明
+- **[picgo/FAQ.md](picgo/FAQ.md)** - PicGo 常见问题
+- **[picgo/CONTRIBUTING.md](picgo/CONTRIBUTING.md)** - PicGo 贡献指南
+
+---
+
+**快速导航：**
+- 🚀 想快速使用？看 [README.md](README.md) 
+- 🔧 想开发扩展？看 [coder-README.md](coder-README.md)
+- 📦 想自己打包？看 [BUILD_GUIDE.md](BUILD_GUIDE.md)
+- 🎨 想了解图标？看 [ICON_MANIFEST.md](ICON_MANIFEST.md)
+- 📁 想了解结构？看 [meum-README.md](meum-README.md)
