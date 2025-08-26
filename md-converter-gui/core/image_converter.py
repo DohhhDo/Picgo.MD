@@ -281,9 +281,7 @@ class MarkdownImageProcessor:
                         relative_path = os.path.relpath(
                             webp_path, os.path.dirname(output_dir)
                         )
-                        relative_path = relative_path.replace(
-                            "\\", "/"
-                        )  # 统一使用正斜杠
+                        relative_path = relative_path.replace("\\", "/")  # 统一使用正斜杠
 
                         # 替换Markdown中的链接（同时处理可能存在的尖括号包裹形式）
                         for old in (f"<{url}>", url):
@@ -297,9 +295,11 @@ class MarkdownImageProcessor:
                     filename = os.path.splitext(os.path.basename(url))[0]
                     webp_path = os.path.join(output_dir, f"{filename}.webp")
 
-                    success, original_size, converted_size = (
-                        self.webp_converter.convert_to_webp(url, webp_path)
-                    )
+                    (
+                        success,
+                        original_size,
+                        converted_size,
+                    ) = self.webp_converter.convert_to_webp(url, webp_path)
                     if success:
                         # 计算相对路径
                         relative_path = os.path.relpath(

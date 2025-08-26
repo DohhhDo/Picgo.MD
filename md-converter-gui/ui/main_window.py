@@ -77,9 +77,7 @@ class MarkdownEditor(QTextEdit):
         )
 
         # 设置占位符文本
-        self.setPlaceholderText(
-            "在此编辑Markdown内容...\n\n示例:\n# 标题\n![图片描述](图片链接)"
-        )
+        self.setPlaceholderText("在此编辑Markdown内容...\n\n示例:\n# 标题\n![图片描述](图片链接)")
 
 
 class ControlPanel(QWidget):

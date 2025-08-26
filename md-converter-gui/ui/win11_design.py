@@ -1713,9 +1713,7 @@ class Win11MainWindow(QMainWindow):
             pass
         if not os.path.isdir(img_dir):
             if not silent:
-                QMessageBox.information(
-                    self, "提示", "未找到 images 目录，请先执行转换。"
-                )
+                QMessageBox.information(self, "提示", "未找到 images 目录，请先执行转换。")
             return
         local_webps = [
             os.path.join(img_dir, n)
@@ -1764,9 +1762,7 @@ class Win11MainWindow(QMainWindow):
                     QMessageBox.information(self, "完成", msg)
                     self._combined_flow = False
                 else:
-                    QMessageBox.information(
-                        self, "上传完成", "已将本地图片链接替换为远程 URL"
-                    )
+                    QMessageBox.information(self, "上传完成", "已将本地图片链接替换为远程 URL")
 
         self.upload_worker.finished_with_mapping.connect(_on_uploaded)
         if silent:
