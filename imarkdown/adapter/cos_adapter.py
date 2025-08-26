@@ -116,3 +116,4 @@ class CosAdapter(BaseMdAdapter):
         
         # Use standard COS domain
         return f"{self.url_prefix}://{self.bucket}.cos.{self.region}.myqcloud.com/{final_key}"
+

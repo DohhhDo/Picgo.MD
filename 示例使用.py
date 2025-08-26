@@ -13,7 +13,7 @@ def demo_github_usage():
     
     # 创建GitHub适配器
     github_adapter = GitHubAdapter(
-        token="ghp_your_token_here",  # 你的GitHub Token
+        token="your_github_token",  # 你的GitHub Token
         owner="your-username",        # 你的GitHub用户名
         repo="image-storage",         # 图片存储仓库
         branch="main",                # 分支
@@ -43,8 +43,8 @@ def demo_cos_usage():
     
     # 展示配置示例（不实际创建，避免依赖问题）
     cos_config = {
-        "secret_id": "AKIDxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-        "secret_key": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", 
+        "secret_id": "your_secret_id_here",
+        "secret_key": "your_secret_key_here", 
         "bucket": "my-images-1234567890",
         "region": "ap-beijing",
         "storage_path_prefix": "blog",
@@ -90,7 +90,7 @@ def demo_s3_usage():
     
     # AWS S3
     aws_config = {
-        "access_key": "AKIAI...",
+        "access_key": "your_access_key",
         "secret_key": "secret...",
         "bucket": "my-bucket",
         "region": "us-east-1",
