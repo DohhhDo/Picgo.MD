@@ -1188,11 +1188,11 @@ class Win11MainWindow(QMainWindow):
                 target_h = 18
             scaled = pix.scaledToHeight(target_h, Qt.TransformationMode.SmoothTransformation)
             self.hero_logo_label.setPixmap(scaled)
-            # 为底部预留 1.2em 空白，避免视觉上被裁切
+            # 为底部预留少量空白，避免视觉上被裁切
             try:
-                reserve = self._em_px(self.hero_logo_label, 1.2)
+                reserve = self._em_px(self.hero_logo_label, 0)
             except Exception:
-                reserve = 12
+                reserve = 0  # 减少到0像素
             label_h = target_h + reserve
             self.hero_logo_label.setContentsMargins(0, 0, 0, reserve)
             self.hero_logo_label.setFixedHeight(label_h)
@@ -1537,16 +1537,18 @@ class Win11MainWindow(QMainWindow):
         # 看门狗
         if hasattr(self, 'conversion_watchdog') and self.conversion_watchdog is not None:
             self.conversion_watchdog.stop()
-        self.conversion_watchdog = QTimer(self)
-        self.conversion_watchdog.setSingleShot(True)
-        self.conversion_watchdog.timeout.connect(self.on_conversion_timeout)
-        self.conversion_watchdog.start(45000)
+        # 暂时禁用超时功能，避免误报
+        # self.conversion_watchdog = QTimer(self)
+        # self.conversion_watchdog.setSingleShot(True)
+        # self.conversion_watchdog.timeout.connect(self.on_conversion_timeout)
+        # self.conversion_watchdog.start(120000)
 
     def on_conversion_progress(self, progress, message):
         self.control_panel.set_progress(progress)
         self.status_label.setText(message)
-        if hasattr(self, 'conversion_watchdog') and self.conversion_watchdog is not None:
-            self.conversion_watchdog.start(45000)
+        # 超时功能已禁用
+        # if hasattr(self, 'conversion_watchdog') and self.conversion_watchdog is not None and progress < 100:
+        #     self.conversion_watchdog.start(120000)
 
     def on_conversion_finished(self, new_markdown, count, stats):
         if hasattr(self, 'conversion_watchdog') and self.conversion_watchdog is not None:
@@ -1605,6 +1607,13 @@ class Win11MainWindow(QMainWindow):
         QMessageBox.critical(self, "转换失败", error_message)
 
     def on_conversion_timeout(self):
+        # 检查转换是否实际上已经完成了
+        if hasattr(self, 'conversion_thread') and self.conversion_thread is not None:
+            if not self.conversion_thread.isRunning():
+                print("[GUI] timeout but thread already finished, ignoring", flush=True)
+                return
+        
+        print("[GUI] conversion timeout triggered (first handler)", flush=True)
         self.control_panel.convert_btn.setEnabled(True)
         self.control_panel.convert_btn.setText("转换")
         self.status_label.setText("转换超时，请检查网络或图片链接")
@@ -1791,17 +1800,19 @@ class ImageBedDialog(QDialog):
         st.addWidget(QLabel("说明：选择图床后，可在下方\"保存\"并稍后进行上传测试。"))
         st.addStretch()
 
-        # 凭据与配置（占位表单）
+        # 凭据与配置（动态表单）
         scroll = QScrollArea(self.tab_config); scroll.setWidgetResizable(True)
-        host = QWidget(); form = QVBoxLayout(host)
-        self.field_endpoint = QLineEdit(); self.field_bucket = QLineEdit()
-        self.field_access_id = QLineEdit(); self.field_access_secret = QLineEdit(); self.field_access_secret.setEchoMode(QLineEdit.EchoMode.Password)
-        region_lbl = QLabel("地域前缀(如 oss-cn-beijing)")
-        form.addWidget(region_lbl); form.addWidget(self.field_endpoint)
-        form.addWidget(QLabel("Bucket/仓库")); form.addWidget(self.field_bucket)
-        form.addWidget(QLabel("AccessKey/Token")); form.addWidget(self.field_access_id)
-        form.addWidget(QLabel("Secret")); form.addWidget(self.field_access_secret)
-        form.addStretch(); scroll.setWidget(host)
+        self.config_host = QWidget()
+        self.config_form = QVBoxLayout(self.config_host)
+        
+        # 创建所有可能用到的字段
+        self.fields = {}
+        self._init_all_fields()
+        
+        # 连接provider切换事件
+        self.provider_combo.currentTextChanged.connect(self._update_config_form)
+        
+        scroll.setWidget(self.config_host)
         cfg = QVBoxLayout(self.tab_config); cfg.addWidget(scroll)
 
         # 移除"高级与策略"页，默认始终启用自动上传
@@ -1817,6 +1828,166 @@ class ImageBedDialog(QDialog):
         self.test_btn.clicked.connect(self.on_test_upload)
         self.clear_btn.clicked.connect(self.on_clear)
         root.addWidget(btns)
+
+    def _init_all_fields(self):
+        """初始化所有可能的配置字段"""
+        from PyQt6.QtWidgets import QLineEdit, QCheckBox
+        
+        # 通用字段
+        self.fields['endpoint'] = QLineEdit()
+        self.fields['bucket'] = QLineEdit() 
+        self.fields['access_id'] = QLineEdit()
+        self.fields['access_secret'] = QLineEdit()
+        self.fields['access_secret'].setEchoMode(QLineEdit.EchoMode.Password)
+        
+        # 腾讯云COS特有
+        self.fields['secret_id'] = QLineEdit()
+        self.fields['secret_key'] = QLineEdit()
+        self.fields['secret_key'].setEchoMode(QLineEdit.EchoMode.Password)
+        self.fields['region'] = QLineEdit()
+        
+        # 七牛云特有
+        self.fields['domain'] = QLineEdit()
+        
+        # GitHub特有  
+        self.fields['token'] = QLineEdit()
+        self.fields['token'].setEchoMode(QLineEdit.EchoMode.Password)
+        self.fields['owner'] = QLineEdit()
+        self.fields['repo'] = QLineEdit()
+        self.fields['branch'] = QLineEdit()
+        self.fields['path_prefix'] = QLineEdit()
+        
+        # 通用可选字段
+        self.fields['custom_domain'] = QLineEdit()
+        self.fields['prefix'] = QLineEdit()
+        self.fields['use_https'] = QCheckBox("使用HTTPS")
+        self.fields['use_https'].setChecked(True)
+        self.fields['use_jsdelivr'] = QCheckBox("使用jsDelivr CDN")
+        self.fields['path_style'] = QCheckBox("使用路径风格URL")
+        
+    def _update_config_form(self):
+        """根据选择的图床类型更新配置表单"""
+        # 清空现有表单
+        while self.config_form.count():
+            child = self.config_form.takeAt(0)
+            if child.widget():
+                child.widget().setParent(None)
+        
+        provider = self._provider_key()
+        
+        if provider == "aliyun_oss":
+            self._build_aliyun_form()
+        elif provider == "cos_v5":
+            self._build_cos_form()
+        elif provider == "qiniu":
+            self._build_qiniu_form()
+        elif provider == "s3":
+            self._build_s3_form()
+        elif provider == "github":
+            self._build_github_form()
+        else:
+            self._build_generic_form()
+            
+        self.config_form.addStretch()
+        
+    def _build_aliyun_form(self):
+        """构建阿里云OSS配置表单"""
+        from PyQt6.QtWidgets import QLabel
+        
+        self.config_form.addWidget(QLabel("地域前缀(如 oss-cn-beijing)"))
+        self.config_form.addWidget(self.fields['endpoint'])
+        self.config_form.addWidget(QLabel("Bucket名称"))
+        self.config_form.addWidget(self.fields['bucket'])
+        self.config_form.addWidget(QLabel("AccessKey ID"))
+        self.config_form.addWidget(self.fields['access_id'])
+        self.config_form.addWidget(QLabel("AccessKey Secret"))
+        self.config_form.addWidget(self.fields['access_secret'])
+        self.config_form.addWidget(QLabel("路径前缀(可选)"))
+        self.config_form.addWidget(self.fields['prefix'])
+        self.config_form.addWidget(QLabel("自定义域名(可选)"))
+        self.config_form.addWidget(self.fields['custom_domain'])
+        
+    def _build_cos_form(self):
+        """构建腾讯云COS配置表单"""
+        from PyQt6.QtWidgets import QLabel
+        
+        self.config_form.addWidget(QLabel("Secret ID"))
+        self.config_form.addWidget(self.fields['secret_id'])
+        self.config_form.addWidget(QLabel("Secret Key"))
+        self.config_form.addWidget(self.fields['secret_key'])
+        self.config_form.addWidget(QLabel("Bucket名称"))
+        self.config_form.addWidget(self.fields['bucket'])
+        self.config_form.addWidget(QLabel("地域(如 ap-beijing)"))
+        self.config_form.addWidget(self.fields['region'])
+        self.config_form.addWidget(QLabel("路径前缀(可选)"))
+        self.config_form.addWidget(self.fields['prefix'])
+        self.config_form.addWidget(QLabel("自定义域名(可选)"))
+        self.config_form.addWidget(self.fields['custom_domain'])
+        self.config_form.addWidget(self.fields['use_https'])
+        
+    def _build_qiniu_form(self):
+        """构建七牛云配置表单"""
+        from PyQt6.QtWidgets import QLabel
+        
+        self.config_form.addWidget(QLabel("Access Key"))
+        self.config_form.addWidget(self.fields['access_id'])
+        self.config_form.addWidget(QLabel("Secret Key"))
+        self.config_form.addWidget(self.fields['access_secret'])
+        self.config_form.addWidget(QLabel("Bucket名称"))
+        self.config_form.addWidget(self.fields['bucket'])
+        self.config_form.addWidget(QLabel("绑定域名"))
+        self.config_form.addWidget(self.fields['domain'])
+        self.config_form.addWidget(QLabel("路径前缀(可选)"))
+        self.config_form.addWidget(self.fields['prefix'])
+        self.config_form.addWidget(self.fields['use_https'])
+        
+    def _build_s3_form(self):
+        """构建S3配置表单"""
+        from PyQt6.QtWidgets import QLabel
+        
+        self.config_form.addWidget(QLabel("Access Key"))
+        self.config_form.addWidget(self.fields['access_id'])
+        self.config_form.addWidget(QLabel("Secret Key"))
+        self.config_form.addWidget(self.fields['access_secret'])
+        self.config_form.addWidget(QLabel("Bucket名称"))
+        self.config_form.addWidget(self.fields['bucket'])
+        self.config_form.addWidget(QLabel("地域(AWS必填,其他可选)"))
+        self.config_form.addWidget(self.fields['region'])
+        self.config_form.addWidget(QLabel("端点URL(MinIO等自建服务必填)"))
+        self.config_form.addWidget(self.fields['endpoint'])
+        self.config_form.addWidget(QLabel("路径前缀(可选)"))
+        self.config_form.addWidget(self.fields['prefix'])
+        self.config_form.addWidget(QLabel("自定义域名(可选)"))
+        self.config_form.addWidget(self.fields['custom_domain'])
+        self.config_form.addWidget(self.fields['use_https'])
+        self.config_form.addWidget(self.fields['path_style'])
+        
+    def _build_github_form(self):
+        """构建GitHub配置表单"""
+        from PyQt6.QtWidgets import QLabel
+        
+        self.config_form.addWidget(QLabel("Personal Access Token"))
+        self.config_form.addWidget(self.fields['token'])
+        self.config_form.addWidget(QLabel("用户名/组织名"))
+        self.config_form.addWidget(self.fields['owner'])
+        self.config_form.addWidget(QLabel("仓库名"))
+        self.config_form.addWidget(self.fields['repo'])
+        self.config_form.addWidget(QLabel("分支名"))
+        self.fields['branch'].setText("main")
+        self.config_form.addWidget(self.fields['branch'])
+        self.config_form.addWidget(QLabel("仓库路径前缀(可选)"))
+        self.config_form.addWidget(self.fields['path_prefix'])
+        self.config_form.addWidget(QLabel("存储路径前缀(可选)"))
+        self.config_form.addWidget(self.fields['prefix'])
+        self.config_form.addWidget(QLabel("自定义域名(可选)"))
+        self.config_form.addWidget(self.fields['custom_domain'])
+        self.config_form.addWidget(self.fields['use_jsdelivr'])
+        
+    def _build_generic_form(self):
+        """构建通用配置表单"""
+        from PyQt6.QtWidgets import QLabel
+        
+        self.config_form.addWidget(QLabel("该图床暂未支持，请选择其他图床"))
 
     def apply_theme(self, dark: bool):
         if dark:
@@ -1843,22 +2014,106 @@ class ImageBedDialog(QDialog):
             "github": "GitHub",
             "smms": "SM.MS",
             "imgur": "Imgur",
+            "s3": "S3",
         }
         target = text_map.get(prov, "阿里云 OSS")
         for i in range(self.provider_combo.count()):
             if target in self.provider_combo.itemText(i):
                 self.provider_combo.setCurrentIndex(i)
                 break
-        # 仅阿里云字段（其余图床后续补充）
-        self.field_endpoint.setText(str(settings.value("imgbed/aliyun/endpoint", "")) or "")
-        self.field_bucket.setText(str(settings.value("imgbed/aliyun/bucket", "")) or "")
-        self.field_access_id.setText(str(settings.value("imgbed/aliyun/accessKeyId", "")) or "")
-        self.field_access_secret.setText(str(settings.value("imgbed/aliyun/accessKeySecret", "")) or "")
+        
+        # 更新表单显示
+        self._update_config_form()
+        
+        # 加载对应图床的配置
+        self._load_provider_config(prov, settings)
+        
         # 状态提示
-        if any([self.field_bucket.text(), self.field_endpoint.text(), self.field_access_id.text()]):
+        if self._has_basic_config(prov, settings):
             self.status_chip.setText("已加载配置")
         else:
             self.status_chip.setText("未测试")
+            
+    def _load_provider_config(self, provider: str, settings):
+        """加载指定图床的配置"""
+        if provider == "aliyun_oss":
+            self.fields['endpoint'].setText(str(settings.value("imgbed/aliyun/endpoint", "")) or "")
+            self.fields['bucket'].setText(str(settings.value("imgbed/aliyun/bucket", "")) or "")
+            self.fields['access_id'].setText(str(settings.value("imgbed/aliyun/accessKeyId", "")) or "")
+            self.fields['access_secret'].setText(str(settings.value("imgbed/aliyun/accessKeySecret", "")) or "")
+            self.fields['prefix'].setText(str(settings.value("imgbed/aliyun/prefix", "images")) or "images")
+            self.fields['custom_domain'].setText(str(settings.value("imgbed/aliyun/customDomain", "")) or "")
+        elif provider == "cos_v5":
+            self.fields['secret_id'].setText(str(settings.value("imgbed/cos/secretId", "")) or "")
+            self.fields['secret_key'].setText(str(settings.value("imgbed/cos/secretKey", "")) or "")
+            self.fields['bucket'].setText(str(settings.value("imgbed/cos/bucket", "")) or "")
+            self.fields['region'].setText(str(settings.value("imgbed/cos/region", "")) or "")
+            self.fields['prefix'].setText(str(settings.value("imgbed/cos/prefix", "images")) or "images")
+            self.fields['custom_domain'].setText(str(settings.value("imgbed/cos/customDomain", "")) or "")
+            self.fields['use_https'].setChecked(settings.value("imgbed/cos/useHttps", True, type=bool))
+        elif provider == "qiniu":
+            self.fields['access_id'].setText(str(settings.value("imgbed/qiniu/accessKey", "")) or "")
+            self.fields['access_secret'].setText(str(settings.value("imgbed/qiniu/secretKey", "")) or "")
+            self.fields['bucket'].setText(str(settings.value("imgbed/qiniu/bucket", "")) or "")
+            self.fields['domain'].setText(str(settings.value("imgbed/qiniu/domain", "")) or "")
+            self.fields['prefix'].setText(str(settings.value("imgbed/qiniu/prefix", "images")) or "images")
+            self.fields['use_https'].setChecked(settings.value("imgbed/qiniu/useHttps", True, type=bool))
+        elif provider == "s3":
+            self.fields['access_id'].setText(str(settings.value("imgbed/s3/accessKey", "")) or "")
+            self.fields['access_secret'].setText(str(settings.value("imgbed/s3/secretKey", "")) or "")
+            self.fields['bucket'].setText(str(settings.value("imgbed/s3/bucket", "")) or "")
+            self.fields['region'].setText(str(settings.value("imgbed/s3/region", "")) or "")
+            self.fields['endpoint'].setText(str(settings.value("imgbed/s3/endpoint", "")) or "")
+            self.fields['prefix'].setText(str(settings.value("imgbed/s3/prefix", "images")) or "images")
+            self.fields['custom_domain'].setText(str(settings.value("imgbed/s3/customDomain", "")) or "")
+            self.fields['use_https'].setChecked(settings.value("imgbed/s3/useHttps", True, type=bool))
+            self.fields['path_style'].setChecked(settings.value("imgbed/s3/pathStyle", False, type=bool))
+        elif provider == "github":
+            self.fields['token'].setText(str(settings.value("imgbed/github/token", "")) or "")
+            self.fields['owner'].setText(str(settings.value("imgbed/github/owner", "")) or "")
+            self.fields['repo'].setText(str(settings.value("imgbed/github/repo", "")) or "")
+            self.fields['branch'].setText(str(settings.value("imgbed/github/branch", "main")) or "main")
+            self.fields['path_prefix'].setText(str(settings.value("imgbed/github/pathPrefix", "")) or "")
+            self.fields['prefix'].setText(str(settings.value("imgbed/github/prefix", "images")) or "images")
+            self.fields['custom_domain'].setText(str(settings.value("imgbed/github/customDomain", "")) or "")
+            self.fields['use_jsdelivr'].setChecked(settings.value("imgbed/github/useJsdelivr", False, type=bool))
+            
+    def _has_basic_config(self, provider: str, settings) -> bool:
+        """检查是否有基本配置"""
+        if provider == "aliyun_oss":
+            return all([
+                settings.value("imgbed/aliyun/endpoint", ""),
+                settings.value("imgbed/aliyun/bucket", ""),
+                settings.value("imgbed/aliyun/accessKeyId", ""),
+                settings.value("imgbed/aliyun/accessKeySecret", "")
+            ])
+        elif provider == "cos_v5":
+            return all([
+                settings.value("imgbed/cos/secretId", ""),
+                settings.value("imgbed/cos/secretKey", ""),
+                settings.value("imgbed/cos/bucket", ""),
+                settings.value("imgbed/cos/region", "")
+            ])
+        elif provider == "qiniu":
+            return all([
+                settings.value("imgbed/qiniu/accessKey", ""),
+                settings.value("imgbed/qiniu/secretKey", ""),
+                settings.value("imgbed/qiniu/bucket", ""),
+                settings.value("imgbed/qiniu/domain", "")
+            ])
+        elif provider == "s3":
+            return all([
+                settings.value("imgbed/s3/accessKey", ""),
+                settings.value("imgbed/s3/secretKey", ""),
+                settings.value("imgbed/s3/bucket", "")
+            ])
+        elif provider == "github":
+            return all([
+                settings.value("imgbed/github/token", ""),
+                settings.value("imgbed/github/owner", ""),
+                settings.value("imgbed/github/repo", "")
+            ])
+        return False
     
     # === 业务：保存配置到 QSettings ===
     def _provider_key(self) -> str:
@@ -1879,6 +2134,8 @@ class ImageBedDialog(QDialog):
             return "smms"
         if "Imgur" in text:
             return "imgur"
+        if "S3" in text:
+            return "s3"
         return ""
 
     def _normalize_aliyun_endpoint(self, region_prefix: str) -> str:
@@ -1900,34 +2157,14 @@ class ImageBedDialog(QDialog):
     def on_save(self):
         settings = QSettings("MdImgConverter", "Settings")
         prov = self._provider_key()
-        # 若填写了阿里云字段但未选择阿里云，自动切换为阿里云
-        if prov != "aliyun_oss":
-            if any([
-                self.field_endpoint.text().strip(),
-                self.field_bucket.text().strip(),
-                self.field_access_id.text().strip(),
-                self.field_access_secret.text().strip(),
-            ]):
-                prov = "aliyun_oss"
-                # 同步下拉框选择
-                for i in range(self.provider_combo.count()):
-                    if "阿里云 OSS" in self.provider_combo.itemText(i):
-                        self.provider_combo.setCurrentIndex(i)
-                        break
+        
+        # 保存当前选择的图床类型
         settings.setValue("imgbed/provider", prov)
-        # 是否启用自动上传
-        # 强制启用自动上传
         settings.setValue("imgbed/enabled", True)
-        # 仅针对阿里云字段（其余图床后续补充）
-        if prov == "aliyun_oss":
-            endpoint = self._normalize_aliyun_endpoint(self.field_endpoint.text())
-            settings.setValue("imgbed/aliyun/endpoint", endpoint)
-            settings.setValue("imgbed/aliyun/bucket", self.field_bucket.text().strip())
-            settings.setValue("imgbed/aliyun/accessKeyId", self.field_access_id.text().strip())
-            settings.setValue("imgbed/aliyun/accessKeySecret", self.field_access_secret.text().strip())
-            # 路径前缀默认 images
-            if settings.value("imgbed/aliyun/prefix", "") in (None, ""):
-                settings.setValue("imgbed/aliyun/prefix", "images")
+        
+        # 根据图床类型保存对应的配置
+        self._save_provider_config(prov, settings)
+        
         # 立即落盘，避免下次打开读取到旧值
         try:
             settings.sync()
@@ -1935,44 +2172,209 @@ class ImageBedDialog(QDialog):
             pass
         self.status_chip.setText("已保存（未测试）")
         self.accept()
+        
+    def _save_provider_config(self, provider: str, settings):
+        """保存指定图床的配置"""
+        if provider == "aliyun_oss":
+            endpoint = self._normalize_aliyun_endpoint(self.fields['endpoint'].text())
+            settings.setValue("imgbed/aliyun/endpoint", endpoint)
+            settings.setValue("imgbed/aliyun/bucket", self.fields['bucket'].text().strip())
+            settings.setValue("imgbed/aliyun/accessKeyId", self.fields['access_id'].text().strip())
+            settings.setValue("imgbed/aliyun/accessKeySecret", self.fields['access_secret'].text().strip())
+            settings.setValue("imgbed/aliyun/prefix", self.fields['prefix'].text().strip() or "images")
+            settings.setValue("imgbed/aliyun/customDomain", self.fields['custom_domain'].text().strip())
+        elif provider == "cos_v5":
+            settings.setValue("imgbed/cos/secretId", self.fields['secret_id'].text().strip())
+            settings.setValue("imgbed/cos/secretKey", self.fields['secret_key'].text().strip())
+            settings.setValue("imgbed/cos/bucket", self.fields['bucket'].text().strip())
+            settings.setValue("imgbed/cos/region", self.fields['region'].text().strip())
+            settings.setValue("imgbed/cos/prefix", self.fields['prefix'].text().strip() or "images")
+            settings.setValue("imgbed/cos/customDomain", self.fields['custom_domain'].text().strip())
+            settings.setValue("imgbed/cos/useHttps", self.fields['use_https'].isChecked())
+        elif provider == "qiniu":
+            settings.setValue("imgbed/qiniu/accessKey", self.fields['access_id'].text().strip())
+            settings.setValue("imgbed/qiniu/secretKey", self.fields['access_secret'].text().strip())
+            settings.setValue("imgbed/qiniu/bucket", self.fields['bucket'].text().strip())
+            settings.setValue("imgbed/qiniu/domain", self.fields['domain'].text().strip())
+            settings.setValue("imgbed/qiniu/prefix", self.fields['prefix'].text().strip() or "images")
+            settings.setValue("imgbed/qiniu/useHttps", self.fields['use_https'].isChecked())
+        elif provider == "s3":
+            settings.setValue("imgbed/s3/accessKey", self.fields['access_id'].text().strip())
+            settings.setValue("imgbed/s3/secretKey", self.fields['access_secret'].text().strip())
+            settings.setValue("imgbed/s3/bucket", self.fields['bucket'].text().strip())
+            settings.setValue("imgbed/s3/region", self.fields['region'].text().strip())
+            settings.setValue("imgbed/s3/endpoint", self.fields['endpoint'].text().strip())
+            settings.setValue("imgbed/s3/prefix", self.fields['prefix'].text().strip() or "images")
+            settings.setValue("imgbed/s3/customDomain", self.fields['custom_domain'].text().strip())
+            settings.setValue("imgbed/s3/useHttps", self.fields['use_https'].isChecked())
+            settings.setValue("imgbed/s3/pathStyle", self.fields['path_style'].isChecked())
+        elif provider == "github":
+            settings.setValue("imgbed/github/token", self.fields['token'].text().strip())
+            settings.setValue("imgbed/github/owner", self.fields['owner'].text().strip())
+            settings.setValue("imgbed/github/repo", self.fields['repo'].text().strip())
+            settings.setValue("imgbed/github/branch", self.fields['branch'].text().strip() or "main")
+            settings.setValue("imgbed/github/pathPrefix", self.fields['path_prefix'].text().strip())
+            settings.setValue("imgbed/github/prefix", self.fields['prefix'].text().strip() or "images")
+            settings.setValue("imgbed/github/customDomain", self.fields['custom_domain'].text().strip())
+            settings.setValue("imgbed/github/useJsdelivr", self.fields['use_jsdelivr'].isChecked())
 
     # === 业务：测试上传一张内存图片 ===
     def on_test_upload(self):
+        """测试当前配置的图床上传功能"""
         try:
-            from uploader.ali_oss_adapter import AliOssAdapter
             from PIL import Image
             from io import BytesIO
         except Exception as e:
             QMessageBox.warning(self, "缺少依赖", f"测试失败：{e}")
             return
+            
         prov = self._provider_key()
-        if prov != "aliyun_oss":
-            QMessageBox.information(self, "提示", "当前先支持测试阿里云 OSS，其他图床后续补充。")
+        
+        # 检查基本配置
+        if not self._validate_current_config(prov):
             return
-        endpoint = self._normalize_aliyun_endpoint(self.field_endpoint.text())
-        bucket = self.field_bucket.text().strip()
-        ak = self.field_access_id.text().strip()
-        sk = self.field_access_secret.text().strip()
-        if not all([endpoint, bucket, ak, sk]):
-            QMessageBox.warning(self, "缺少配置", "请填写 Endpoint/Bucket/AccessKey/Secret")
-            return
+            
         try:
-            adapter = AliOssAdapter(
-                access_key_id=ak,
-                access_key_secret=sk,
-                bucket_name=bucket,
-                endpoint=endpoint,
-                storage_path_prefix="images",
-            )
+            # 创建测试图片
             img = Image.new('RGB', (2, 2), (0, 255, 0))
             buf = BytesIO()
             img.save(buf, format='WEBP', quality=75)
-            url = adapter.upload_bytes(buf.getvalue(), "mdimgconverter_test.webp")
+            test_data = buf.getvalue()
+            
+            # 创建对应的适配器并测试上传
+            adapter = self._create_test_adapter(prov)
+            if not adapter:
+                return
+                
+            url = adapter.upload_bytes(test_data, "mdimgconverter_test.webp")
             self.status_chip.setText("测试成功")
             QMessageBox.information(self, "测试成功", f"已上传：\n{url}")
+            
         except Exception as e:
             self.status_chip.setText("测试失败")
             QMessageBox.critical(self, "测试失败", str(e))
+            
+    def _validate_current_config(self, provider: str) -> bool:
+        """验证当前图床配置是否完整"""
+        missing_fields = []
+        
+        if provider == "aliyun_oss":
+            if not self.fields['endpoint'].text().strip():
+                missing_fields.append("地域端点")
+            if not self.fields['bucket'].text().strip():
+                missing_fields.append("Bucket")
+            if not self.fields['access_id'].text().strip():
+                missing_fields.append("AccessKey ID")
+            if not self.fields['access_secret'].text().strip():
+                missing_fields.append("AccessKey Secret")
+        elif provider == "cos_v5":
+            if not self.fields['secret_id'].text().strip():
+                missing_fields.append("Secret ID")
+            if not self.fields['secret_key'].text().strip():
+                missing_fields.append("Secret Key")
+            if not self.fields['bucket'].text().strip():
+                missing_fields.append("Bucket")
+            if not self.fields['region'].text().strip():
+                missing_fields.append("地域")
+        elif provider == "qiniu":
+            if not self.fields['access_id'].text().strip():
+                missing_fields.append("Access Key")
+            if not self.fields['access_secret'].text().strip():
+                missing_fields.append("Secret Key")
+            if not self.fields['bucket'].text().strip():
+                missing_fields.append("Bucket")
+            if not self.fields['domain'].text().strip():
+                missing_fields.append("绑定域名")
+        elif provider == "s3":
+            if not self.fields['access_id'].text().strip():
+                missing_fields.append("Access Key")
+            if not self.fields['access_secret'].text().strip():
+                missing_fields.append("Secret Key")
+            if not self.fields['bucket'].text().strip():
+                missing_fields.append("Bucket")
+        elif provider == "github":
+            if not self.fields['token'].text().strip():
+                missing_fields.append("Token")
+            if not self.fields['owner'].text().strip():
+                missing_fields.append("用户名/组织名")
+            if not self.fields['repo'].text().strip():
+                missing_fields.append("仓库名")
+        else:
+            QMessageBox.information(self, "提示", "该图床类型暂不支持测试上传。")
+            return False
+            
+        if missing_fields:
+            QMessageBox.warning(self, "配置不完整", f"请填写以下必需字段：\n{', '.join(missing_fields)}")
+            return False
+            
+        return True
+        
+    def _create_test_adapter(self, provider: str):
+        """创建用于测试的适配器实例"""
+        try:
+            if provider == "aliyun_oss":
+                from uploader.ali_oss_adapter import AliOssAdapter
+                endpoint = self._normalize_aliyun_endpoint(self.fields['endpoint'].text())
+                return AliOssAdapter(
+                    access_key_id=self.fields['access_id'].text().strip(),
+                    access_key_secret=self.fields['access_secret'].text().strip(),
+                    bucket_name=self.fields['bucket'].text().strip(),
+                    endpoint=endpoint,
+                    storage_path_prefix=self.fields['prefix'].text().strip() or "images",
+                    custom_domain=self.fields['custom_domain'].text().strip() or None,
+                )
+            elif provider == "cos_v5":
+                from uploader.cos_adapter import CosAdapter
+                return CosAdapter(
+                    secret_id=self.fields['secret_id'].text().strip(),
+                    secret_key=self.fields['secret_key'].text().strip(),
+                    bucket=self.fields['bucket'].text().strip(),
+                    region=self.fields['region'].text().strip(),
+                    storage_path_prefix=self.fields['prefix'].text().strip() or "images",
+                    custom_domain=self.fields['custom_domain'].text().strip() or None,
+                    use_https=self.fields['use_https'].isChecked(),
+                )
+            elif provider == "qiniu":
+                from uploader.qiniu_adapter import QiniuAdapter
+                return QiniuAdapter(
+                    access_key=self.fields['access_id'].text().strip(),
+                    secret_key=self.fields['access_secret'].text().strip(),
+                    bucket=self.fields['bucket'].text().strip(),
+                    domain=self.fields['domain'].text().strip(),
+                    storage_path_prefix=self.fields['prefix'].text().strip() or "images",
+                    use_https=self.fields['use_https'].isChecked(),
+                )
+            elif provider == "s3":
+                from uploader.s3_adapter import S3Adapter
+                return S3Adapter(
+                    access_key=self.fields['access_id'].text().strip(),
+                    secret_key=self.fields['access_secret'].text().strip(),
+                    bucket=self.fields['bucket'].text().strip(),
+                    region=self.fields['region'].text().strip() or None,
+                    endpoint=self.fields['endpoint'].text().strip() or None,
+                    storage_path_prefix=self.fields['prefix'].text().strip() or "images",
+                    custom_domain=self.fields['custom_domain'].text().strip() or None,
+                    use_https=self.fields['use_https'].isChecked(),
+                    path_style=self.fields['path_style'].isChecked(),
+                )
+            elif provider == "github":
+                from uploader.github_adapter import GitHubAdapter
+                return GitHubAdapter(
+                    token=self.fields['token'].text().strip(),
+                    owner=self.fields['owner'].text().strip(),
+                    repo=self.fields['repo'].text().strip(),
+                    branch=self.fields['branch'].text().strip() or "main",
+                    path_prefix=self.fields['path_prefix'].text().strip(),
+                    storage_path_prefix=self.fields['prefix'].text().strip() or "images",
+                    custom_domain=self.fields['custom_domain'].text().strip() or None,
+                    use_jsdelivr=self.fields['use_jsdelivr'].isChecked(),
+                )
+        except ImportError as e:
+            QMessageBox.warning(self, "缺少依赖", f"无法导入{provider}适配器：{e}")
+            return None
+        except Exception as e:
+            QMessageBox.warning(self, "配置错误", f"创建适配器失败：{e}")
+            return None
     
     def on_clear(self):
         """清空当前已保存的图床配置（imgbed 分组）并清空表单。"""
@@ -2099,10 +2501,11 @@ class ImageBedDialog(QDialog):
                 self.conversion_watchdog.stop()
         except Exception:
             pass
-        self.conversion_watchdog = QTimer(self)
-        self.conversion_watchdog.setSingleShot(True)
-        self.conversion_watchdog.timeout.connect(self.on_conversion_timeout)
-        self.conversion_watchdog.start(45000)  # 45s 超时提示
+        # 暂时禁用超时功能，避免误报
+        # self.conversion_watchdog = QTimer(self)
+        # self.conversion_watchdog.setSingleShot(True)
+        # self.conversion_watchdog.timeout.connect(self.on_conversion_timeout)
+        # self.conversion_watchdog.start(120000)  # 45s 超时提示
     
     def on_conversion_progress(self, progress, message):
         """转换进度更新"""
@@ -2112,20 +2515,22 @@ class ImageBedDialog(QDialog):
             print(f"[GUI] progress: {progress}%  {message}", flush=True)
         except Exception:
             pass
-        # 刷新看门狗
-        try:
-            if hasattr(self, 'conversion_watchdog') and self.conversion_watchdog is not None:
-                self.conversion_watchdog.start(45000)
-        except Exception:
-            pass
+        # 超时功能已禁用，避免误报
+        # try:
+        #     if hasattr(self, 'conversion_watchdog') and self.conversion_watchdog is not None and progress < 100:
+        #         self.conversion_watchdog.start(120000)
+        # except Exception:
+        #     pass
     
     def on_conversion_finished(self, new_markdown, count, stats):
         """转换完成"""
+        # 立即停止超时定时器
         try:
             if hasattr(self, 'conversion_watchdog') and self.conversion_watchdog is not None:
                 self.conversion_watchdog.stop()
-        except Exception:
-            pass
+                print("[GUI] conversion watchdog stopped on finish", flush=True)
+        except Exception as e:
+            print(f"[GUI] error stopping watchdog: {e}", flush=True)
         try:
             print(f"[GUI] finished: count={count} stats={stats}", flush=True)
         except Exception:
@@ -2204,13 +2609,19 @@ class ImageBedDialog(QDialog):
     def on_conversion_timeout(self):
         """转换超时提示（不强杀线程，仅提示并恢复按钮）"""
         try:
-            print("[GUI] timeout", flush=True)
+            print("[GUI] conversion timeout triggered", flush=True)
+            # 检查转换是否实际上已经完成了
+            if hasattr(self, 'conversion_thread') and self.conversion_thread is not None:
+                if not self.conversion_thread.isRunning():
+                    print("[GUI] timeout but thread already finished, ignoring", flush=True)
+                    return
+            
             self.control_panel.convert_btn.setEnabled(True)
             self.control_panel.convert_btn.setText("转换")
             self.status_label.setText("转换超时，请检查网络或图片链接")
             QMessageBox.warning(self, "转换超时", "转换耗时过长，可能网络较慢或图片地址不可达。稍后重试，或检查图片 URL。")
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"[GUI] error in timeout handler: {e}", flush=True)
 
 # 兼容性修复：将下方（意外置于类外的）方法绑定回 Win11MainWindow
 try:

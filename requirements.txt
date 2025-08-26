@@ -4,3 +4,7 @@ pydantic
 cushy-storage
 qtawesome
 qtpy
+PyQt6>=6.0.0
+cos-python-sdk-v5
+qiniu
+boto3
