@@ -30,7 +30,7 @@ pydantic = "^1.10.0"
 cushy-storage = "^1.2.5"
 oss2 = "^2.18.0"
 
-[tool.poetry.dev-dependencies]
+[tool.poetry.group.dev.dependencies]
 bandit = "^1.7.1"
 black = {version = "^22.12", allow-prereleases = true}
 isort = {extras = ["colors"], version = "^5.10.1"}
