@@ -17,20 +17,14 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
-    - name: Install poetry
-      run: pip install poetry
-
-    - name: Set up cache
-      uses: actions/cache@v4
-      with:
-        path: .venv
-        key: venv-${{ matrix.python-version }}-${{ hashFiles('pyproject.toml') }}-${{ hashFiles('poetry.lock') }}
-
     - name: Install dependencies
       run: |
-        poetry config virtualenvs.in-project true
-        poetry install
+        python -m pip install --upgrade pip
+        pip install flake8 black isort
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
     - name: Analysis the code with lint
       run: |
-        make lint
+        black --check .
+        isort --check-only .
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics

@@ -67,6 +67,7 @@ copy_icons.py
 create_icons.py
 setup.py
 poetry.lock
+pyproject.toml
 sweep.yaml
 test_integration.py
 upx.exe

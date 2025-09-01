@@ -4,5 +4,6 @@ PYTHON_FILES=.
 #* Lint
 .PHONY: lint
 lint:
-	poetry run black $(PYTHON_FILES) --check
-	poetry run isort --settings-path pyproject.toml ./
+	black $(PYTHON_FILES) --check
+	isort --check-only ./
+	flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
