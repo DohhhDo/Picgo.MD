@@ -1,3 +1,59 @@
+# OS / Editor
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+*.swo
+
+# IDE
+.vscode/
+.idea/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.python-version
+.venv/
+venv/
+env/
+
+# Testing / Type check / Coverage
+.pytest_cache/
+.mypy_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# Python packaging / builds (incl. PyInstaller)
+build/
+dist/
+.eggs/
+*.egg-info/
+*.spec
+
+# App-specific build outputs
+md-converter-gui/dist/
+md-converter-gui/build/
+md-converter-gui/*.spec
+dist/**/*.exe
+
+# Node (picgo)
+picgo/node_modules/
+picgo/dist/
+picgo/out/
+picgo/build/
+picgo/.turbo/
+picgo/.cache/
+
+# Logs & temp
+*.log
+*.tmp
+*.bak
+
+# Runtime generated images (keep repo assets under image/)
+images/
+
 tests/converted
 tests/test_converted.md
 tests/local_mds/
