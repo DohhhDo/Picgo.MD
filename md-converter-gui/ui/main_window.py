@@ -6,7 +6,15 @@
 
 import sys
 
-from PyQt6.QtCore import QPoint, QRect, QSettings, QSize, Qt, QTimer, pyqtSignal
+from PyQt6.QtCore import (
+    QPoint,
+    QRect,
+    QSettings,
+    QSize,
+    Qt,
+    QTimer,
+    pyqtSignal,
+)
 from PyQt6.QtGui import (
     QAction,
     QColor,
@@ -77,7 +85,9 @@ class MarkdownEditor(QTextEdit):
         )
 
         # 设置占位符文本
-        self.setPlaceholderText("在此编辑Markdown内容...\n\n示例:\n# 标题\n![图片描述](图片链接)")
+        self.setPlaceholderText(
+            "在此编辑Markdown内容...\n\n示例:\n# 标题\n![图片描述](图片链接)"
+        )
 
 
 class ControlPanel(QWidget):
@@ -163,7 +173,8 @@ class ControlPanel(QWidget):
         # 标题
         title = QLabel("图片")
         title.setStyleSheet(
-            "font-size: 14px; font-weight: bold; color: #333; font-family: 'Microsoft YaHei';"
+            "font-size: 14px; font-weight: bold; color: #333; "
+            "font-family: 'Microsoft YaHei';"
         )
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(title)
@@ -249,7 +260,8 @@ class ControlPanel(QWidget):
         # 标题
         title = QLabel("文章")
         title.setStyleSheet(
-            "font-size: 14px; font-weight: bold; color: #333; font-family: 'Microsoft YaHei';"
+            "font-size: 14px; font-weight: bold; color: #333; "
+            "font-family: 'Microsoft YaHei';"
         )
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(title)

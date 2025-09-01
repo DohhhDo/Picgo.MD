@@ -213,8 +213,14 @@ class Win11ControlPanel(QWidget):
                 font-weight: 600;
                 padding: 8px 14px;
             }}
-            QPushButton:hover {{ background-color: {tokens['primary_hover']}; border-color: {tokens['primary_hover']}; }}
-            QPushButton:pressed {{ background-color: {tokens['primary_press']}; border-color: {tokens['primary_press']}; }}
+            QPushButton:hover {{ 
+                background-color: {tokens['primary_hover']}; 
+                border-color: {tokens['primary_hover']}; 
+            }}
+            QPushButton:pressed {{ 
+                background-color: {tokens['primary_press']}; 
+                border-color: {tokens['primary_press']}; 
+            }}
         """
         )
         # 上传按钮（次要描边款）
@@ -231,8 +237,14 @@ class Win11ControlPanel(QWidget):
                     font-weight: 600;
                     padding: 6px 12px;
                 }}
-                QPushButton:hover {{ background-color: {tokens['chip_hover_bg']}; border-color: {tokens['chip_border']}; }}
-                QPushButton:pressed {{ background-color: {tokens['chip_pressed_bg']}; border-color: {tokens['chip_border']}; }}
+                QPushButton:hover {{ 
+                    background-color: {tokens['chip_hover_bg']}; 
+                    border-color: {tokens['chip_border']}; 
+                }}
+                QPushButton:pressed {{ 
+                    background-color: {tokens['chip_pressed_bg']}; 
+                    border-color: {tokens['chip_border']}; 
+                }}
             """
             )
 
