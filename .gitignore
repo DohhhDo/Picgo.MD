@@ -67,7 +67,6 @@ copy_icons.py
 create_icons.py
 setup.py
 poetry.lock
-Makefile
 sweep.yaml
 test_integration.py
 upx.exe
