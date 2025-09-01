@@ -842,7 +842,9 @@ class Win11ControlPanel(QWidget):
                     QPushButton {{
                         background-color: {tokens.get('chip_selected_bg', '#dcfce7')};
                         color: {tokens.get('chip_selected_text', '#166534')};
-                        border: 2px solid {tokens.get('chip_selected_border', '#16a34a')};
+                        border: 2px solid {tokens.get(
+                            'chip_selected_border', '#16a34a'
+                        )};
                         border-radius: 15px;
                         padding: 2px 12px;
                         font-size: 12px; font-weight: 700;
@@ -860,8 +862,12 @@ class Win11ControlPanel(QWidget):
                         padding: 2px 12px;
                         font-size: 12px; font-weight: 600;
                     }}
-                    QPushButton:hover {{ background-color: {tokens.get('chip_hover_bg', '#ecfdf5')}; }}
-                    QPushButton:pressed {{ background-color: {tokens.get('chip_pressed_bg', '#dcfce7')}; }}
+                    QPushButton:hover {{ 
+                        background-color: {tokens.get('chip_hover_bg', '#ecfdf5')}; 
+                    }}
+                    QPushButton:pressed {{ 
+                        background-color: {tokens.get('chip_pressed_bg', '#dcfce7')}; 
+                    }}
                 """
                 )
 
