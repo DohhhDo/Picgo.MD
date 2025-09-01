@@ -116,7 +116,8 @@ class WebPConverter:
                 ),
             }
 
-            # 处理包含空格与中文字符的 URL（例如阿里云 OSS 对象名中存在空格），先快速 HEAD 取 Content-Type
+            # 处理包含空格与中文字符的 URL（例如阿里云 OSS 对象名中存在空格）
+            # 先快速 HEAD 取 Content-Type
             safe_url = requests.utils.requote_uri(url)
             # 动态设置 Referer：多数站点允许来自自身域的请求
             try:

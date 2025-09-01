@@ -267,8 +267,15 @@ class Win11ControlPanel(QWidget):
         # 滑杆样式
         self.quality_slider.setStyleSheet(
             f"""
-            QSlider::groove:horizontal {{ background: {tokens['slider_track']}; height: 4px; border-radius: 2px; }}
-            QSlider::sub-page:horizontal {{ background: {tokens['slider_fill']}; border-radius: 2px; }}
+            QSlider::groove:horizontal {{ 
+                background: {tokens['slider_track']}; 
+                height: 4px; 
+                border-radius: 2px; 
+            }}
+            QSlider::sub-page:horizontal {{ 
+                background: {tokens['slider_fill']}; 
+                border-radius: 2px; 
+            }}
             QSlider::handle:horizontal {{ background: {tokens['slider_fill']}; width: 18px; height: 18px; border-radius: 9px; margin: -7px 0; }}
             QSlider::handle:horizontal:hover {{ background: {tokens['primary_hover']}; }}
         """
