@@ -25,7 +25,7 @@ md-webP/  （已简化的项目结构）
 │   ├── 📁 temp_iconset/               # 临时图标集
 │   ├── 📄 app_icon.ico               # 主应用图标
 │   └── 📄 README.md                  # 图标使用说明
-├── 📁 image/                          # 项目图像资源
+├── 📁 icons/image/                    # 项目图像资源（已移动到icons下）
 │   ├── 🖼️ app-icon-192.png           # 应用图标(192x192)
 │   ├── 🖼️ favicon.png                # 网站图标
 │   ├── 🖼️ logo.png                   # 项目Logo
@@ -158,7 +158,7 @@ md-webP/  （已简化的项目结构）
 
 ### 🎨 图标和资源
 - **icons/** - 多平台图标资源集合
-- **image/** - 项目图像和Logo资源
+- **icons/image/** - 项目图像和Logo资源
 - **pictures/** - 应用程序图标文件
 - **create_icons.py** - 自动化图标生成工具
 - **copy_icons.py** - 图标部署脚本

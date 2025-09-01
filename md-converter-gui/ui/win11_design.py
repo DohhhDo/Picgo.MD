@@ -1358,13 +1358,13 @@ class Win11MainWindow(QMainWindow):
     def _icon_from_svg_file(
         self, filename: str, color_hex: str | None = None, size: int = 28
     ) -> QIcon | None:
-        """从 /image/ 目录加载 SVG 并渲染为 QIcon，支持 PyInstaller 与源码两种运行方式。"""
+        """从 /icons/image/ 目录加载 SVG 并渲染为 QIcon，支持 PyInstaller 与源码两种运行方式。"""
         import sys
 
-        # PyInstaller: 资源位于 sys._MEIPASS 根目录下的 image/
+        # PyInstaller: 资源位于 sys._MEIPASS 根目录下的 icons/image/
         # 源码运行：以仓库根目录为基准（win11_design.py 位于 md-converter-gui/ui/ 下，向上两级到根）
         base_dir = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parents[2]))
-        p = base_dir / "image" / filename
+        p = base_dir / "icons" / "image" / filename
         if not p.exists():
             return None
         try:

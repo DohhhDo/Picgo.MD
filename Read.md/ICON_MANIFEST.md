@@ -11,9 +11,9 @@
 - `md-converter-gui/icon.png` - GUI 程序 PNG 图标
 
 ### Web 应用程序
-- `image/favicon.png` - 网站图标 (32x32)
-- `image/app-icon-192.png` - PWA 图标 (192x192)
-- `image/logo.png` - 通用 Logo (128x128)
+- `icons/image/favicon.png` - 网站图标 (32x32)
+- `icons/image/app-icon-192.png` - PWA 图标 (192x192)
+- `icons/image/logo.png` - 通用 Logo (128x128)
 
 ### 移动应用程序
 - `icons/android/` - Android 各 DPI 图标
@@ -59,7 +59,7 @@ icon='pictures/app_icon.ico'
 {
   "icons": [
     {
-      "src": "image/app-icon-192.png",
+      "src": "icons/image/app-icon-192.png",
       "sizes": "192x192",
       "type": "image/png"
     }
