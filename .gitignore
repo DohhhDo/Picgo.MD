@@ -54,6 +54,35 @@ picgo/.cache/
 # Runtime generated images (keep repo assets under image/)
 images/
 
+# Redundant directories and files
+example/
+picgo/
+tests/
+upx-5.0.2-win64/
+winui3-app/
+build_optimized.bat
+build_optimized.sh
+*.spec
+copy_icons.py
+create_icons.py
+setup.py
+poetry.lock
+Makefile
+sweep.yaml
+test_integration.py
+upx.exe
+upx-doc.html
+upx-doc.txt
+upx.1
+COPYING
+LICENSE
+license
+NEWS
+THANKS.txt
+MEOW.png
+Meowdown.png
+pictures/
+
 tests/converted
 tests/test_converted.md
 tests/local_mds/
