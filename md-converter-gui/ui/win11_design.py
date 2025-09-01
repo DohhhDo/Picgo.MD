@@ -276,19 +276,33 @@ class Win11ControlPanel(QWidget):
                 background: {tokens['slider_fill']}; 
                 border-radius: 2px; 
             }}
-            QSlider::handle:horizontal {{ background: {tokens['slider_fill']}; width: 18px; height: 18px; border-radius: 9px; margin: -7px 0; }}
-            QSlider::handle:horizontal:hover {{ background: {tokens['primary_hover']}; }}
+            QSlider::handle:horizontal {{ 
+                background: {tokens['slider_fill']}; 
+                width: 18px; 
+                height: 18px; 
+                border-radius: 9px; 
+                margin: -7px 0; 
+            }}
+            QSlider::handle:horizontal:hover {{ 
+                background: {tokens['primary_hover']}; 
+            }}
         """
         )
 
         # 进度条
         if hasattr(self, "progress_bg"):
             self.progress_bg.setStyleSheet(
-                f"QWidget {{ background-color: {tokens['progress_bg']}; border-radius: 3px; }}"
+                f"QWidget {{ "
+                f"background-color: {tokens['progress_bg']}; "
+                f"border-radius: 3px; "
+                f"}}"
             )
         if hasattr(self, "progress_fill"):
             self.progress_fill.setStyleSheet(
-                f"QWidget {{ background-color: {tokens['progress_fill']}; border-radius: 3px; }}"
+                f"QWidget {{ "
+                f"background-color: {tokens['progress_fill']}; "
+                f"border-radius: 3px; "
+                f"}}"
             )
         if hasattr(self, "progress_text"):
             self.progress_text.setStyleSheet(
@@ -308,7 +322,9 @@ class Win11ControlPanel(QWidget):
                     font-size: 12px; font-weight: 600;
                 }}
                 QPushButton:hover {{ background-color: {tokens['chip_hover_bg']}; }}
-                QPushButton:pressed {{ background-color: {tokens['chip_pressed_bg']}; }}
+                QPushButton:pressed {{ 
+                    background-color: {tokens['chip_pressed_bg']}; 
+                }}
             """
             )
         # 选中态刷新
@@ -413,9 +429,19 @@ class Win11ControlPanel(QWidget):
         self.quality_slider.setFixedHeight(24)
         self.quality_slider.setStyleSheet(
             """
-            QSlider::groove:horizontal { background: #d1fae5; height: 4px; border-radius: 2px; }
+            QSlider::groove:horizontal { 
+                background: #d1fae5; 
+                height: 4px; 
+                border-radius: 2px; 
+            }
             QSlider::sub-page:horizontal { background: #16a34a; border-radius: 2px; }
-            QSlider::handle:horizontal { background: #16a34a; width: 18px; height: 18px; border-radius: 9px; margin: -7px 0; }
+            QSlider::handle:horizontal { 
+                background: #16a34a; 
+                width: 18px; 
+                height: 18px; 
+                border-radius: 9px; 
+                margin: -7px 0; 
+            }
             QSlider::handle:horizontal:hover { background: #15803d; }
         """
         )
@@ -1046,7 +1072,9 @@ class Win11MainWindow(QMainWindow):
         self.splitter = QSplitter(Qt.Orientation.Horizontal)
         self.splitter.setHandleWidth(1)
         # 隐藏分割线
-        self.splitter.setStyleSheet("QSplitter::handle{background-color:transparent;}")
+        self.splitter.setStyleSheet(
+            "QSplitter::handle{background-color:transparent;}"
+        )
 
         # 左侧编辑器
         self.editor = Win11MarkdownEditor()
