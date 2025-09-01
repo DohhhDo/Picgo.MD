@@ -66,8 +66,7 @@ build_optimized.sh
 copy_icons.py
 create_icons.py
 setup.py
-poetry.lock
-pyproject.toml
+poetry.locpyproject.toml
 sweep.yaml
 test_integration.py
 upx.exe
