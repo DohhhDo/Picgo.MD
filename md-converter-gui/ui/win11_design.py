@@ -574,7 +574,12 @@ class Win11ControlPanel(QWidget):
         if dark:
             if hasattr(self, "progress_title"):
                 self.progress_title.setStyleSheet(
-                    "QLabel{color:#E5E7EB;font-size:16px;font-weight:600;margin-bottom:4px;}"
+                    "QLabel{"
+                    "color:#E5E7EB;"
+                    "font-size:16px;"
+                    "font-weight:600;"
+                    "margin-bottom:4px;"
+                    "}"
                 )
             if hasattr(self, "progress_bg"):
                 self.progress_bg.setStyleSheet(
@@ -587,7 +592,12 @@ class Win11ControlPanel(QWidget):
         else:
             if hasattr(self, "progress_title"):
                 self.progress_title.setStyleSheet(
-                    "QLabel{color:#065f46;font-size:16px;font-weight:600;margin-bottom:4px;}"
+                    "QLabel{"
+                    "color:#065f46;"
+                    "font-size:16px;"
+                    "font-weight:600;"
+                    "margin-bottom:4px;"
+                    "}"
                 )
             if hasattr(self, "progress_bg"):
                 self.progress_bg.setStyleSheet(
@@ -1140,7 +1150,9 @@ class Win11MainWindow(QMainWindow):
         try:
             import sys as _sys
 
-            return Path(getattr(_sys, "_MEIPASS", Path(__file__).resolve().parents[2]))
+            return Path(
+                getattr(_sys, "_MEIPASS", Path(__file__).resolve().parents[2])
+            )
         except Exception:
             return Path(__file__).resolve().parents[2]
 
@@ -1189,7 +1201,11 @@ class Win11MainWindow(QMainWindow):
             self.setStyleSheet(
                 """
                         QMainWindow { background-color: #0f172a; }
-                        QMenuBar { background-color: #111827; color: #e5e7eb; border: none; }
+                        QMenuBar { 
+                            background-color: #111827; 
+                            color: #e5e7eb; 
+                            border: none; 
+                        }
                         QMenuBar::item:selected { background-color: #1f2937; }
                     """
             )
@@ -1257,21 +1273,49 @@ class Win11MainWindow(QMainWindow):
             ]:
                 if btn is not None:
                     btn.setStyleSheet(
-                        "QToolButton{color:#E5E7EB;background:transparent;border:none;padding:2px 8px;} QToolButton:hover{background:#1f2937;border-radius:4px;}"
+                        "QToolButton{"
+                        "color:#E5E7EB;"
+                        "background:transparent;"
+                        "border:none;"
+                        "padding:2px 8px;"
+                        "} "
+                        "QToolButton:hover{"
+                        "background:#1f2937;"
+                        "border-radius:4px;"
+                        "}"
                     )
             if hasattr(self, "hero_start_btn"):
                 self.hero_start_btn.setStyleSheet(
                     """
-                    QPushButton { background-color: #16a34a; color: #ffffff; border: 1px solid #16a34a; border-radius: 8px; font-size: 14px; font-weight: 600; padding: 6px 16px; }
-                    QPushButton:hover { background-color: #15803d; border-color: #15803d; }
-                    QPushButton:pressed { background-color: #166534; border-color: #166534; }
+                    QPushButton { 
+                        background-color: #16a34a; 
+                        color: #ffffff; 
+                        border: 1px solid #16a34a; 
+                        border-radius: 8px; 
+                        font-size: 14px; 
+                        font-weight: 600; 
+                        padding: 6px 16px; 
+                    }
+                    QPushButton:hover { 
+                        background-color: #15803d; 
+                        border-color: #15803d; 
+                    }
+                    QPushButton:pressed { 
+                        background-color: #166534; 
+                        border-color: #166534; 
+                    }
                     """
                 )
             # 底部状态栏与整体背景保持一致的深色
             if hasattr(self, "status_bar"):
                 # 去除状态栏顶部分割线
                 self.status_bar.setStyleSheet(
-                    "QStatusBar{background-color:#0f172a;color:#E6EAF0;padding:4px 16px;font-size:12px;}"
+                    "QStatusBar{"
+                    "background-color:#0f172a;"
+                    "color:#E6EAF0;"
+                    "padding:4px 16px;"
+                    "font-size:12px;"
+                    "}"
                 )
                 # 明确设置状态栏上的文本颜色
                 if hasattr(self, "status_label"):
@@ -1384,9 +1428,23 @@ class Win11MainWindow(QMainWindow):
             if hasattr(self, "hero_start_btn"):
                 self.hero_start_btn.setStyleSheet(
                     """
-                    QPushButton { background-color: #16a34a; color: #ffffff; border: 1px solid #16a34a; border-radius: 8px; font-size: 14px; font-weight: 600; padding: 6px 16px; }
-                    QPushButton:hover { background-color: #15803d; border-color: #15803d; }
-                    QPushButton:pressed { background-color: #166534; border-color: #166534; }
+                    QPushButton { 
+                        background-color: #16a34a; 
+                        color: #ffffff; 
+                        border: 1px solid #16a34a; 
+                        border-radius: 8px; 
+                        font-size: 14px; 
+                        font-weight: 600; 
+                        padding: 6px 16px; 
+                    }
+                    QPushButton:hover { 
+                        background-color: #15803d; 
+                        border-color: #15803d; 
+                    }
+                    QPushButton:pressed { 
+                        background-color: #166534; 
+                        border-color: #166534; 
+                    }
                     """
                 )
             # 底部状态栏：亮色模式下背景与整体保持一致的浅绿，文字深色
