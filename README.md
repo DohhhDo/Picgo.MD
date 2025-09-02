@@ -9,7 +9,6 @@
 - 🇪🇸 [Español](Read.md/README-es.md)
 - 🇫🇷 [Français](Read.md/README-fr.md)
 
-![Preview](icons/image/preview.png)
 =======
 ![Preview](icons/image/previewStory1.jpg)
 
