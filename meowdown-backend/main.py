@@ -32,15 +32,27 @@ if str(project_root) not in sys.path:
 MarkdownImageProcessor = None
 UploadManager = None
 GitHubAdapter = None
+AliOssAdapter = None
+CosAdapter = None
+QiniuAdapter = None
+S3Adapter = None
 
 try:
     # 首先尝试常规包名（如果你未来把目录重命名为 md_converter_gui 可直接生效）
     from md_converter_gui.core.image_converter import MarkdownImageProcessor as _MIP
     from md_converter_gui.uploader.manager import UploadManager as _UM
     from md_converter_gui.uploader.github_adapter import GitHubAdapter as _GH
+    from md_converter_gui.uploader.ali_oss_adapter import AliOssAdapter as _ALI
+    from md_converter_gui.uploader.cos_adapter import CosAdapter as _COS
+    from md_converter_gui.uploader.qiniu_adapter import QiniuAdapter as _QNU
+    from md_converter_gui.uploader.s3_adapter import S3Adapter as _S3
     MarkdownImageProcessor = _MIP
     UploadManager = _UM
     GitHubAdapter = _GH
+    AliOssAdapter = _ALI
+    CosAdapter = _COS
+    QiniuAdapter = _QNU
+    S3Adapter = _S3
 except Exception as e:
     print(f"Warning: Could not import conversion modules by package name: {e}")
     # 回退：使用文件路径动态加载
@@ -61,10 +73,18 @@ except Exception as e:
     img_conv_path = gui_root / 'core' / 'image_converter.py'
     uploader_mgr_path = gui_root / 'uploader' / 'manager.py'
     github_adapter_path = gui_root / 'uploader' / 'github_adapter.py'
+    aliyun_adapter_path = gui_root / 'uploader' / 'ali_oss_adapter.py'
+    cos_adapter_path = gui_root / 'uploader' / 'cos_adapter.py'
+    qiniu_adapter_path = gui_root / 'uploader' / 'qiniu_adapter.py'
+    s3_adapter_path = gui_root / 'uploader' / 's3_adapter.py'
 
     img_conv_mod = _load_module_from_path('image_converter', img_conv_path) if img_conv_path.exists() else None
     uploader_mgr_mod = _load_module_from_path('uploader_manager', uploader_mgr_path) if uploader_mgr_path.exists() else None
     github_adapter_mod = _load_module_from_path('github_adapter', github_adapter_path) if github_adapter_path.exists() else None
+    aliyun_adapter_mod = _load_module_from_path('ali_oss_adapter', aliyun_adapter_path) if aliyun_adapter_path.exists() else None
+    cos_adapter_mod = _load_module_from_path('cos_adapter', cos_adapter_path) if cos_adapter_path.exists() else None
+    qiniu_adapter_mod = _load_module_from_path('qiniu_adapter', qiniu_adapter_path) if qiniu_adapter_path.exists() else None
+    s3_adapter_mod = _load_module_from_path('s3_adapter', s3_adapter_path) if s3_adapter_path.exists() else None
 
     try:
         if img_conv_mod and hasattr(img_conv_mod, 'MarkdownImageProcessor'):
@@ -73,6 +93,14 @@ except Exception as e:
             UploadManager = getattr(uploader_mgr_mod, 'UploadManager')
         if github_adapter_mod and hasattr(github_adapter_mod, 'GitHubAdapter'):
             GitHubAdapter = getattr(github_adapter_mod, 'GitHubAdapter')
+        if aliyun_adapter_mod and hasattr(aliyun_adapter_mod, 'AliOssAdapter'):
+            AliOssAdapter = getattr(aliyun_adapter_mod, 'AliOssAdapter')
+        if cos_adapter_mod and hasattr(cos_adapter_mod, 'CosAdapter'):
+            CosAdapter = getattr(cos_adapter_mod, 'CosAdapter')
+        if qiniu_adapter_mod and hasattr(qiniu_adapter_mod, 'QiniuAdapter'):
+            QiniuAdapter = getattr(qiniu_adapter_mod, 'QiniuAdapter')
+        if s3_adapter_mod and hasattr(s3_adapter_mod, 'S3Adapter'):
+            S3Adapter = getattr(s3_adapter_mod, 'S3Adapter')
     except Exception as e2:
         print(f"Warning: Could not set conversion classes: {e2}")
 
@@ -86,7 +114,14 @@ app = FastAPI(
 # 配置 CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:5175",
+        "http://127.0.0.1:5175",
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -96,6 +131,25 @@ app.add_middleware(
 OUTPUTS_ROOT = (project_root / "outputs").resolve()
 OUTPUTS_ROOT.mkdir(parents=True, exist_ok=True)
 app.mount("/static", StaticFiles(directory=str(OUTPUTS_ROOT)), name="static")
+
+# 配置持久化文件
+IMAGEBED_CONFIG_PATH = OUTPUTS_ROOT / "imagebed_config.json"
+
+# 工具函数：规范化阿里云 OSS endpoint
+def _normalize_ali_endpoint(endpoint: Optional[str]) -> Optional[str]:
+    try:
+        if not endpoint:
+            return endpoint
+        ep = str(endpoint).strip().rstrip('/')
+        # 仅区域前缀（例如 oss-cn-hangzhou）
+        if ep.startswith('oss-') and '.' not in ep:
+            return f"https://{ep}.aliyuncs.com"
+        # 仅主机名（例如 oss-cn-hangzhou.aliyuncs.com）
+        if '://' not in ep:
+            ep = f"https://{ep}"
+        return ep
+    except Exception:
+        return endpoint
 
 # 数据模型
 class ConversionRequest(BaseModel):
@@ -273,22 +327,89 @@ async def convert_markdown(request: ConversionRequest):
         except Exception:
             norm_stats = stats or {}
 
-        # 如果启用图床上传，执行上传并替换链接
-        if request.use_image_bed and request.image_bed_provider == 'github' and GitHubAdapter:
+        # 解析“有效的图床配置”来源：优先请求体，其次读取本地持久化配置
+        try:
+            print(f"[imagebed] request flags: use={request.use_image_bed} provider={request.image_bed_provider}")
+        except Exception:
+            pass
+        effective_enabled = bool(request.use_image_bed)
+        effective_provider = request.image_bed_provider or None
+        effective_cfg = request.image_bed_config or None
+
+        if not effective_enabled or not effective_provider:
             try:
-                # 简单策略：将 /static/images/*.webp 转为临时本地路径列表并上传
-                replaced = new_markdown
+                if IMAGEBED_CONFIG_PATH.exists():
+                    with open(IMAGEBED_CONFIG_PATH, 'r', encoding='utf-8') as f:
+                        persisted = json.load(f)
+                    if bool(persisted.get('enabled')):
+                        effective_enabled = True
+                        effective_provider = persisted.get('provider') or effective_provider
+                        effective_cfg = persisted.get('config') or effective_cfg
+                    try:
+                        print(f"[imagebed] persisted: enabled={persisted.get('enabled')} provider={persisted.get('provider')}")
+                    except Exception:
+                        pass
+            except Exception:
+                pass
+
+        try:
+            # 不打印敏感字段，仅打印键名
+            cfg_keys = list((effective_cfg or {}).keys())
+            print(f"[imagebed] effective: enabled={effective_enabled} provider={effective_provider} cfg_keys={cfg_keys}")
+        except Exception:
+            pass
+
+        # 如果启用图床上传，执行上传并替换链接
+        if effective_enabled and effective_provider == 'github' and GitHubAdapter:
+            try:
+                task_manager.update_task(task_id, max(task_manager.get_task(task_id).get('progress', 0), 90), "准备上传到图床...")
+                print("[upload] image bed enabled, provider=github")
+                # 简单策略：将 /static/<dir>/*.webp（或 <dir>/*.webp）提取为文件名并上传
+                replaced = new_markdown or ""
                 upload_dir = (OUTPUTS_ROOT / (request.output_dir or 'images')).resolve()
                 urls_map = {}
-                # 从 markdown 抽取 /static/images/ 文件名
                 import re
-                paths = re.findall(r"/static/(?:images|[^/]+)/([\w\-\.]+\.webp)", replaced or "")
+                dir_name = request.output_dir or 'images'
+                # 同时匹配带 /static/ 前缀和纯相对路径两种形式
+                pattern_static = rf"/static/{re.escape(dir_name)}/([^/\\?#]+?\\.webp)"
+                pattern_relative = rf"(?<![\w/]){re.escape(dir_name)}/([^/\\?#]+?\\.webp)"
+                keys = set(re.findall(pattern_static, replaced, flags=re.IGNORECASE)) | set(re.findall(pattern_relative, replaced, flags=re.IGNORECASE))
+                print(f"[upload] dir_name={dir_name} upload_dir={upload_dir}")
+                print(f"[upload] matched keys ({len(keys)}): {list(keys)[:5]}{'...' if len(keys) > 5 else ''}")
                 local_paths = []
-                for fn in set(paths):
+                for fn in keys:
                     p = os.path.join(str(upload_dir), fn)
                     if os.path.exists(p):
                         local_paths.append(p)
-                cfg = request.image_bed_config or {}
+                    else:
+                        # 打印不存在的文件，便于定位为何找不到
+                        print(f"[upload] not found on disk: {p}")
+                print(f"[upload] files to upload (regex): {len(local_paths)}")
+
+                # 回退策略：若正则未匹配到，但 markdown 中包含 /static/<dir>/ 或 <dir>/，按文件名在目录中筛选最近生成且被引用的文件
+                if not local_paths:
+                    try:
+                        import time
+                        recent_threshold_sec = 10 * 60  # 10 分钟内
+                        candidates = []
+                        for fn in os.listdir(upload_dir):
+                            if not fn.lower().endswith('.webp'):
+                                continue
+                            full = os.path.join(str(upload_dir), fn)
+                            try:
+                                mtime = os.path.getmtime(full)
+                            except Exception:
+                                continue
+                            if (time.time() - mtime) <= recent_threshold_sec:
+                                # 仅收录 markdown 中确实引用到的文件名
+                                if (f"/static/{dir_name}/{fn}" in replaced) or (f"{dir_name}/{fn}" in replaced):
+                                    candidates.append(full)
+                        if candidates:
+                            local_paths = candidates
+                        print(f"[upload] files to upload (fallback): {len(local_paths)}")
+                    except Exception as _fe:
+                        print(f"[upload] fallback scan error: {_fe}")
+                cfg = effective_cfg or {}
                 gh = GitHubAdapter(
                     token=cfg.get('token',''),
                     owner=cfg.get('owner',''),
@@ -299,17 +420,319 @@ async def convert_markdown(request: ConversionRequest):
                     custom_domain=cfg.get('custom_domain') or None,
                     use_jsdelivr=bool(cfg.get('use_jsdelivr')),
                 )
-                for lp in local_paths:
+                total_files = len(local_paths)
+                if total_files == 0:
+                    task_manager.update_task(task_id, 95, "未发现可上传文件，跳过上传")
+                for index, lp in enumerate(local_paths, start=1):
+                    # 上传进度：90% -> 98%
+                    step = 90 + int(8 * index / max(1, total_files))
+                    task_manager.update_task(task_id, step, f"上传中 {index}/{total_files}")
                     key = os.path.basename(lp)
                     url = gh.upload_file(lp, key)
                     urls_map[key] = url
                 # 替换链接
                 for key, url in urls_map.items():
-                    replaced = replaced.replace(f"/static/{request.output_dir}/{key}", url)
+                    replaced = replaced.replace(f"/static/{dir_name}/{key}", url)
+                    replaced = replaced.replace(f"{dir_name}/{key}", url)
                 new_markdown = replaced
-                task_manager.update_task(task_id, 95, "图床上传完成")
+                # 清理本地已上传的 webp 文件
+                deleted_count = 0
+                for lp in local_paths:
+                    try:
+                        os.remove(lp)
+                        deleted_count += 1
+                    except Exception:
+                        pass
+                # 如目录为空，可尝试清理空目录（忽略错误）
+                try:
+                    if os.path.isdir(upload_dir) and not os.listdir(upload_dir):
+                        os.rmdir(upload_dir)
+                except Exception:
+                    pass
+                task_manager.update_task(task_id, 99, f"图床上传完成，已清理本地文件 {deleted_count} 个")
             except Exception as ue:
                 task_manager.update_task(task_id, 95, f"图床上传失败: {ue}")
+        elif effective_enabled and effective_provider == 'aliyun' and AliOssAdapter:
+            try:
+                task_manager.update_task(task_id, max(task_manager.get_task(task_id).get('progress', 0), 90), "准备上传到阿里云...")
+                replaced = new_markdown or ""
+                upload_dir = (OUTPUTS_ROOT / (request.output_dir or 'images')).resolve()
+                urls_map = {}
+                import re
+                dir_name = request.output_dir or 'images'
+                pattern_static = rf"/static/{re.escape(dir_name)}/([^/\\?#]+?\\.webp)"
+                pattern_relative = rf"(?<![\w/]){re.escape(dir_name)}/([^/\\?#]+?\\.webp)"
+                keys = set(re.findall(pattern_static, replaced, flags=re.IGNORECASE)) | set(re.findall(pattern_relative, replaced, flags=re.IGNORECASE))
+                print(f"[aliyun] dir_name={dir_name} upload_dir={upload_dir}")
+                print(f"[aliyun] matched keys ({len(keys)}): {list(keys)[:5]}{'...' if len(keys) > 5 else ''}")
+                try:
+                    sample = replaced[:200].replace("\n"," ")
+                    print(f"[aliyun] new_md sample: {sample}")
+                except Exception:
+                    pass
+                local_paths = []
+                for fn in keys:
+                    p = os.path.join(str(upload_dir), fn)
+                    if os.path.exists(p):
+                        local_paths.append(p)
+                    else:
+                        print(f"[aliyun] not found on disk: {p}")
+                # Fallback: scan recent files in upload_dir referenced by markdown
+                if not local_paths:
+                    try:
+                        import time
+                        recent_threshold_sec = 10 * 60
+                        candidates = []
+                        for fn in os.listdir(upload_dir):
+                            if not fn.lower().endswith('.webp'):
+                                continue
+                            full = os.path.join(str(upload_dir), fn)
+                            try:
+                                mtime = os.path.getmtime(full)
+                            except Exception:
+                                continue
+                            if (time.time() - mtime) <= recent_threshold_sec:
+                                if (f"/static/{dir_name}/{fn}" in replaced) or (f"{dir_name}/{fn}" in replaced):
+                                    candidates.append(full)
+                        if candidates:
+                            local_paths = candidates
+                        print(f"[aliyun] files to upload (fallback): {len(local_paths)}")
+                    except Exception as _fe:
+                        print(f"[aliyun] fallback scan error: {_fe}")
+                cfg = effective_cfg or {}
+                # 规范化 endpoint
+                norm_endpoint = _normalize_ali_endpoint(cfg.get('endpoint',''))
+                oss = AliOssAdapter(
+                    access_key_id=cfg.get('access_key_id',''),
+                    access_key_secret=cfg.get('access_key_secret',''),
+                    bucket_name=cfg.get('bucket_name',''),
+                    endpoint=norm_endpoint or '',
+                    storage_path_prefix=cfg.get('storage_path_prefix') or '',
+                    custom_domain=cfg.get('custom_domain') or None,
+                )
+                total_files = len(local_paths)
+                if total_files == 0:
+                    task_manager.update_task(task_id, 95, "未发现可上传文件，跳过上传")
+                for index, lp in enumerate(local_paths, start=1):
+                    step = 90 + int(8 * index / max(1, total_files))
+                    task_manager.update_task(task_id, step, f"上传中 {index}/{total_files}")
+                    key = os.path.basename(lp)
+                    url = oss.upload_file(lp, key)
+                    urls_map[key] = url
+                for key, url in urls_map.items():
+                    replaced = replaced.replace(f"/static/{dir_name}/{key}", url)
+                    replaced = replaced.replace(f"{dir_name}/{key}", url)
+                new_markdown = replaced
+                # 清理本地
+                deleted_count = 0
+                for lp in local_paths:
+                    try:
+                        os.remove(lp)
+                        deleted_count += 1
+                    except Exception:
+                        pass
+                try:
+                    if os.path.isdir(upload_dir) and not os.listdir(upload_dir):
+                        os.rmdir(upload_dir)
+                except Exception:
+                    pass
+                task_manager.update_task(task_id, 99, f"阿里云上传完成，已清理本地文件 {deleted_count} 个")
+            except Exception as ue:
+                task_manager.update_task(task_id, 95, f"阿里云上传失败: {ue}")
+        elif effective_enabled and effective_provider == 'cos' and CosAdapter:
+            try:
+                task_manager.update_task(task_id, max(task_manager.get_task(task_id).get('progress', 0), 90), "准备上传到 COS...")
+                replaced = new_markdown or ""
+                upload_dir = (OUTPUTS_ROOT / (request.output_dir or 'images')).resolve()
+                urls_map = {}
+                import re
+                dir_name = request.output_dir or 'images'
+                pattern_static = rf"/static/{re.escape(dir_name)}/([^/\\?#]+?\\.webp)"
+                pattern_relative = rf"(?<![\w/]){re.escape(dir_name)}/([^/\\?#]+?\\.webp)"
+                keys = set(re.findall(pattern_static, replaced, flags=re.IGNORECASE)) | set(re.findall(pattern_relative, replaced, flags=re.IGNORECASE))
+                try:
+                    print(f"[cos] dir_name={dir_name} upload_dir={upload_dir}")
+                    print(f"[cos] matched keys ({len(keys)}): {list(keys)[:5]}{'...' if len(keys) > 5 else ''}")
+                    sample = replaced[:200].replace("\n"," ")
+                    print(f"[cos] new_md sample: {sample}")
+                except Exception:
+                    pass
+                local_paths = [os.path.join(str(upload_dir), fn) for fn in keys if os.path.exists(os.path.join(str(upload_dir), fn))]
+                # fallback: 引用匹配 + mtime
+                if not local_paths:
+                    try:
+                        import time
+                        recent_threshold_sec = 10 * 60
+                        candidates = []
+                        for fn in os.listdir(upload_dir):
+                            if not fn.lower().endswith('.webp'):
+                                continue
+                            full = os.path.join(str(upload_dir), fn)
+                            try:
+                                mtime = os.path.getmtime(full)
+                            except Exception:
+                                continue
+                            if (time.time() - mtime) <= recent_threshold_sec:
+                                if (f"/static/{dir_name}/{fn}" in replaced) or (f"{dir_name}/{fn}" in replaced):
+                                    candidates.append(full)
+                        if candidates:
+                            local_paths = candidates
+                        print(f"[cos] files to upload (fallback): {len(local_paths)}")
+                    except Exception as _fe:
+                        print(f"[cos] fallback scan error: {_fe}")
+                cfg = effective_cfg or {}
+                cos = CosAdapter(
+                    secret_id=cfg.get('secret_id',''),
+                    secret_key=cfg.get('secret_key',''),
+                    bucket=cfg.get('bucket',''),
+                    region=cfg.get('region',''),
+                    storage_path_prefix=cfg.get('storage_path_prefix') or '',
+                    custom_domain=cfg.get('custom_domain') or None,
+                    use_https=bool(cfg.get('use_https', True)),
+                )
+                total_files = len(local_paths)
+                if total_files == 0:
+                    task_manager.update_task(task_id, 95, "未发现可上传文件，跳过上传")
+                for index, lp in enumerate(local_paths, start=1):
+                    step = 90 + int(8 * index / max(1, total_files))
+                    task_manager.update_task(task_id, step, f"上传中 {index}/{total_files}")
+                    key = os.path.basename(lp)
+                    url = cos.upload_file(lp, key)
+                    urls_map[key] = url
+                for key, url in urls_map.items():
+                    try:
+                        pattern_static2 = rf"/static/{re.escape(dir_name)}/{re.escape(key)}([\\?#][^\\s\\)]*)?"
+                        pattern_relative2 = rf"(?<![\w/]){re.escape(dir_name)}/{re.escape(key)}([\\?#][^\\s\\)]*)?"
+                        replaced, n1 = re.subn(pattern_static2, url, replaced)
+                        replaced, n2 = re.subn(pattern_relative2, url, replaced)
+                        print(f"[cos] replaced {key} -> {url} (static:{n1}, rel:{n2})")
+                    except Exception:
+                        before = replaced
+                        replaced = replaced.replace(f"/static/{dir_name}/{key}", url)
+                        replaced = replaced.replace(f"{dir_name}/{key}", url)
+                        print(f"[cos] replaced (fallback) {key} -> {url} (changed:{1 if before != replaced else 0})")
+                new_markdown = replaced
+                # 清理本地
+                deleted = 0
+                for lp in local_paths:
+                    try:
+                        os.remove(lp)
+                        deleted += 1
+                    except Exception:
+                        pass
+                task_manager.update_task(task_id, 99, f"COS 上传完成，已清理 {deleted} 个文件")
+            except Exception as ue:
+                task_manager.update_task(task_id, 95, f"COS 上传失败: {ue}")
+        elif effective_enabled and effective_provider == 'qiniu' and QiniuAdapter:
+            try:
+                task_manager.update_task(task_id, max(task_manager.get_task(task_id).get('progress', 0), 90), "准备上传到七牛...")
+                replaced = new_markdown or ""
+                upload_dir = (OUTPUTS_ROOT / (request.output_dir or 'images')).resolve()
+                urls_map = {}
+                import re
+                dir_name = request.output_dir or 'images'
+                pattern_static = rf"/static/{re.escape(dir_name)}/([^/\\?#]+?\\.webp)"
+                pattern_relative = rf"(?<![\w/]){re.escape(dir_name)}/([^/\\?#]+?\\.webp)"
+                keys = set(re.findall(pattern_static, replaced, flags=re.IGNORECASE)) | set(re.findall(pattern_relative, replaced, flags=re.IGNORECASE))
+                local_paths = [os.path.join(str(upload_dir), fn) for fn in keys if os.path.exists(os.path.join(str(upload_dir), fn))]
+                cfg = effective_cfg or {}
+                qn = QiniuAdapter(
+                    access_key=cfg.get('access_key',''),
+                    secret_key=cfg.get('secret_key',''),
+                    bucket=cfg.get('bucket',''),
+                    domain=cfg.get('domain',''),
+                    storage_path_prefix=cfg.get('storage_path_prefix') or '',
+                    use_https=bool(cfg.get('use_https', True)),
+                )
+                total_files = len(local_paths)
+                if total_files == 0:
+                    task_manager.update_task(task_id, 95, "未发现可上传文件，跳过上传")
+                for index, lp in enumerate(local_paths, start=1):
+                    step = 90 + int(8 * index / max(1, total_files))
+                    task_manager.update_task(task_id, step, f"上传中 {index}/{total_files}")
+                    key = os.path.basename(lp)
+                    url = qn.upload_file(lp, key)
+                    urls_map[key] = url
+                for key, url in urls_map.items():
+                    replaced = replaced.replace(f"/static/{dir_name}/{key}", url)
+                    replaced = replaced.replace(f"{dir_name}/{key}", url)
+                new_markdown = replaced
+                for lp in local_paths:
+                    try:
+                        os.remove(lp)
+                    except Exception:
+                        pass
+                task_manager.update_task(task_id, 99, "七牛上传完成")
+            except Exception as ue:
+                task_manager.update_task(task_id, 95, f"七牛上传失败: {ue}")
+        elif effective_enabled and effective_provider == 's3' and S3Adapter:
+            try:
+                task_manager.update_task(task_id, max(task_manager.get_task(task_id).get('progress', 0), 90), "准备上传到 S3...")
+                replaced = new_markdown or ""
+                upload_dir = (OUTPUTS_ROOT / (request.output_dir or 'images')).resolve()
+                urls_map = {}
+                import re
+                dir_name = request.output_dir or 'images'
+                pattern_static = rf"/static/{re.escape(dir_name)}/([^/\\?#]+?\\.webp)"
+                pattern_relative = rf"(?<![\w/]){re.escape(dir_name)}/([^/\\?#]+?\\.webp)"
+                keys = set(re.findall(pattern_static, replaced, flags=re.IGNORECASE)) | set(re.findall(pattern_relative, replaced, flags=re.IGNORECASE))
+                local_paths = [os.path.join(str(upload_dir), fn) for fn in keys if os.path.exists(os.path.join(str(upload_dir), fn))]
+                cfg = effective_cfg or {}
+                s3 = S3Adapter(
+                    access_key=cfg.get('access_key',''),
+                    secret_key=cfg.get('secret_key',''),
+                    bucket=cfg.get('bucket',''),
+                    region=cfg.get('region'),
+                    endpoint=cfg.get('endpoint'),
+                    storage_path_prefix=cfg.get('storage_path_prefix') or '',
+                    custom_domain=cfg.get('custom_domain') or None,
+                    use_https=bool(cfg.get('use_https', True)),
+                    path_style=bool(cfg.get('path_style', False)),
+                )
+                total_files = len(local_paths)
+                if total_files == 0:
+                    task_manager.update_task(task_id, 95, "未发现可上传文件，跳过上传")
+                for index, lp in enumerate(local_paths, start=1):
+                    step = 90 + int(8 * index / max(1, total_files))
+                    task_manager.update_task(task_id, step, f"上传中 {index}/{total_files}")
+                    key = os.path.basename(lp)
+                    url = s3.upload_file(lp, key)
+                    urls_map[key] = url
+                for key, url in urls_map.items():
+                    replaced = replaced.replace(f"/static/{dir_name}/{key}", url)
+                    replaced = replaced.replace(f"{dir_name}/{key}", url)
+                new_markdown = replaced
+                for lp in local_paths:
+                    try:
+                        os.remove(lp)
+                    except Exception:
+                        pass
+                task_manager.update_task(task_id, 99, "S3 上传完成")
+            except Exception as ue:
+                task_manager.update_task(task_id, 95, f"S3 上传失败: {ue}")
+        else:
+            # 明确记录未进行上传的原因，便于调试
+            reason = []
+            if not effective_enabled:
+                reason.append("未启用")
+            if effective_provider not in ('github','aliyun','cos','qiniu','s3'):
+                reason.append(f"provider={effective_provider or 'None'} 不支持")
+            if effective_provider == 'github' and not GitHubAdapter:
+                reason.append("GitHubAdapter 未加载")
+            if effective_provider == 'aliyun' and not AliOssAdapter:
+                reason.append("AliOssAdapter 未加载")
+            if effective_provider == 'cos' and not CosAdapter:
+                reason.append("CosAdapter 未加载")
+            if effective_provider == 'qiniu' and not QiniuAdapter:
+                reason.append("QiniuAdapter 未加载")
+            if effective_provider == 's3' and not S3Adapter:
+                reason.append("S3Adapter 未加载")
+            if reason:
+                task_manager.update_task(task_id, max(task_manager.get_task(task_id).get('progress', 0), 90), f"跳过上传：{'，'.join(reason)}")
+                try:
+                    print(f"[imagebed] skip upload: {'，'.join(reason)}")
+                except Exception:
+                    pass
 
         # 标记完成
         task_manager.update_task(task_id, 100, "转换完成", True)
@@ -390,19 +813,46 @@ async def upload_to_imagebed(
 
 @app.post("/api/imagebed/config")
 async def save_imagebed_config(config: ImageBedConfig):
-    """保存图床配置"""
-    # 这里应该保存到配置文件或数据库
-    # 目前只是返回成功响应
-    return {
-        "success": True,
-        "message": "图床配置已保存"
-    }
+    """保存图床配置到本地 JSON 文件"""
+    try:
+        data = {
+            "provider": config.provider,
+            "enabled": bool(config.enabled),
+            "config": config.config or {},
+        }
+        # 原子写入：先写临时文件再替换
+        tmp_path = IMAGEBED_CONFIG_PATH.with_suffix(".json.tmp")
+        with open(tmp_path, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        os.replace(tmp_path, IMAGEBED_CONFIG_PATH)
+
+        return {
+            "success": True,
+            "message": "图床配置已保存",
+            "data": data,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"保存失败: {e}")
 
 @app.get("/api/imagebed/config")
 async def get_imagebed_config():
-    """获取图床配置"""
-    # 这里应该从配置文件或数据库读取
-    # 目前返回默认配置
+    """获取图床配置（从本地 JSON 文件读取）"""
+    try:
+        if IMAGEBED_CONFIG_PATH.exists():
+            with open(IMAGEBED_CONFIG_PATH, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            # 兜底字段
+            provider = data.get("provider") or ""
+            enabled = bool(data.get("enabled"))
+            cfg = data.get("config") or {}
+            return {
+                "provider": provider,
+                "enabled": enabled,
+                "config": cfg,
+            }
+    except Exception:
+        # 读取失败则回退为默认
+        pass
     return {
         "provider": "",
         "enabled": False,
@@ -449,6 +899,83 @@ async def test_imagebed_config(config: ImageBedConfig):
 
             return {"success": True, "message": "GitHub 配置可用"}
 
+        if provider == "aliyun":
+            try:
+                access_key_id = cfg.get("access_key_id")
+                access_key_secret = cfg.get("access_key_secret")
+                bucket_name = cfg.get("bucket_name")
+                endpoint = _normalize_ali_endpoint(cfg.get("endpoint"))
+                if not all([access_key_id, access_key_secret, bucket_name, endpoint]):
+                    return {"success": False, "message": "缺少 access_key_id/secret/bucket/endpoint"}
+                if AliOssAdapter is None:
+                    return {"success": False, "message": "AliOssAdapter 未加载"}
+                try:
+                    tmp = AliOssAdapter(access_key_id, access_key_secret, bucket_name, endpoint)
+                    # 真实请求：获取 bucket 信息以验证凭证与 endpoint/bucket 一致性
+                    info = tmp.bucket.get_bucket_info()
+                    # 返回部分元数据，避免暴露敏感信息
+                    return {"success": True, "message": "阿里云配置可用", "region": getattr(info, 'region', None)}
+                except Exception as _e:
+                    return {"success": False, "message": f"连接失败: {_e}"}
+            except Exception as _ex:
+                return {"success": False, "message": f"测试失败: {_ex}"}
+        if provider == "cos":
+            try:
+                sid = cfg.get('secret_id')
+                skey = cfg.get('secret_key')
+                bucket = cfg.get('bucket')
+                region = cfg.get('region')
+                if not all([sid, skey, bucket, region]):
+                    return {"success": False, "message": "缺少 secret_id/secret_key/bucket/region"}
+                if CosAdapter is None:
+                    return {"success": False, "message": "CosAdapter 未加载"}
+                try:
+                    tmp = CosAdapter(sid, skey, bucket, region)
+                    # 真实请求：head_bucket 校验连通与权限
+                    tmp.client.head_bucket(Bucket=bucket)
+                except Exception as _e:
+                    return {"success": False, "message": f"连接失败: {_e}"}
+                return {"success": True, "message": "COS 配置可用"}
+            except Exception as _ex:
+                return {"success": False, "message": f"测试失败: {_ex}"}
+        if provider == "qiniu":
+            try:
+                ak = cfg.get('access_key')
+                sk = cfg.get('secret_key')
+                bucket = cfg.get('bucket')
+                domain = cfg.get('domain')
+                if not all([ak, sk, bucket, domain]):
+                    return {"success": False, "message": "缺少 access_key/secret_key/bucket/domain"}
+                if QiniuAdapter is None:
+                    return {"success": False, "message": "QiniuAdapter 未加载"}
+                try:
+                    tmp = QiniuAdapter(ak, sk, bucket, domain)
+                    _ = tmp.domain
+                except Exception as _e:
+                    return {"success": False, "message": f"连接失败: {_e}"}
+                return {"success": True, "message": "七牛配置可用"}
+            except Exception as _ex:
+                return {"success": False, "message": f"测试失败: {_ex}"}
+        if provider == "s3":
+            try:
+                ak = cfg.get('access_key')
+                sk = cfg.get('secret_key')
+                bucket = cfg.get('bucket')
+                region = cfg.get('region')
+                endpoint = cfg.get('endpoint')
+                if not all([ak, sk, bucket]):
+                    return {"success": False, "message": "缺少 access_key/secret_key/bucket"}
+                if S3Adapter is None:
+                    return {"success": False, "message": "S3Adapter 未加载"}
+                try:
+                    tmp = S3Adapter(ak, sk, bucket, region=region, endpoint=endpoint)
+                    # 真实请求：head_bucket 校验
+                    tmp.client.head_bucket(Bucket=bucket)
+                except Exception as _e:
+                    return {"success": False, "message": f"连接失败: {_e}"}
+                return {"success": True, "message": "S3 配置可用"}
+            except Exception as _ex:
+                return {"success": False, "message": f"测试失败: {_ex}"}
         return {"success": False, "message": "暂不支持的图床类型"}
     except Exception as e:
         return {"success": False, "message": f"测试失败: {e}"}

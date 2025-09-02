@@ -20,6 +20,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useApiState } from './hooks/useApiState'
 import { MarkdownEditor, ControlPanel, FileOperations, StatsDisplay, ImageBedSettingsModal } from './components'
 import { MeowdownAPI } from './services/api'
+import { ImageBedStatusBadge } from './components'
 import { FiUpload, FiDownload } from 'react-icons/fi'
 
 function App() {
@@ -264,16 +265,21 @@ function App() {
                 </HStack>
               )}
             </Badge>
+
+            {/* 图床状态 */}
+            <ImageBedStatusBadge />
             
             {/* 转换状态 */}
             <Badge
-              colorScheme={apiState.isConverting ? 'orange' : apiState.progress > 0 ? 'green' : 'gray'}
+              colorScheme={apiState.isConverting ? 'orange' : apiState.progress >= 100 ? 'green' : apiState.progress > 0 ? 'blue' : 'gray'}
               variant="subtle"
               px={3}
               py={1}
               borderRadius="full"
             >
-              {apiState.isConverting ? '转换中' : apiState.progress > 0 ? '已完成' : '就绪'}
+              {apiState.isConverting
+                ? (apiState.progress >= 90 && apiState.progress < 100 ? '上传中' : '转换中')
+                : (apiState.progress >= 100 ? '已完成' : apiState.progress > 0 ? '处理中' : '就绪')}
             </Badge>
             
             <Text fontSize="sm" color="gray.600">
