@@ -2,7 +2,6 @@
 
 把 Markdown 里的图片一键变身 WebP，还能自动上传到图床！(=^･ω･^=)✧
 
-<<<<<<< HEAD
 ## 🌍 多语言版本 | Multi-language Versions
 - 🇨🇳 [中文](README.md) (当前页面)
 - 🇺🇸 [English](Read.md/README-en.md)
