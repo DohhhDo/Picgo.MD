@@ -20,6 +20,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useApiState } from './hooks/useApiState'
 import { MarkdownEditor, ControlPanel, FileOperations, StatsDisplay, ImageBedSettingsModal } from './components'
 import { MeowdownAPI } from './services/api'
+
 import { ImageBedStatusBadge } from './components'
 import { FiUpload, FiDownload } from 'react-icons/fi'
 
@@ -132,7 +133,7 @@ function App() {
       const response = await startConversion({
         markdown,
         quality,
-        output_dir: 'images',
+
         use_image_bed: Boolean(imageBed?.enabled),
         image_bed_provider: imageBed?.provider || undefined,
         image_bed_config: imageBed?.config || undefined,
@@ -292,6 +293,7 @@ function App() {
             <Button size="sm" variant="ghost" leftIcon={<SettingsIcon />} onClick={() => setIsImageBedOpen(true)}>
               设置
             </Button>
+
             <Button
               size="sm"
               variant="ghost"
@@ -323,6 +325,8 @@ function App() {
           </Button>
         </Alert>
       )}
+
+
 
       {/* 主内容区域 */}
       <Flex flex={1} overflow="hidden">

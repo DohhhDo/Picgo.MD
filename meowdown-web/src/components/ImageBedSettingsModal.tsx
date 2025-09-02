@@ -36,14 +36,14 @@ const PROVIDERS = [
 export const ImageBedSettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
   const toast = useToast()
   const [loading, setLoading] = useState(false)
-  const [form, setForm] = useState<ImageBedConfig>({ provider: 'github', enabled: false, config: {} })
+  const [form, setForm] = useState<ImageBedConfig>({ type: 'github', provider: 'github', enabled: false, config: {} })
 
   useEffect(() => {
     if (!isOpen) return
     setLoading(true)
     MeowdownAPI.getImageBedConfig()
       .then((data) => {
-        if (data) setForm(data)
+        if (data) setForm(data as ImageBedConfig)
       })
       .catch(() => {
         // ignore if not configured yet
@@ -59,7 +59,7 @@ export const ImageBedSettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
       // 保存后自动测试
       try {
         const res = await MeowdownAPI.testImageBedConfig(form)
-        toast({ title: '图床测试', description: res.message, status: res.success ? 'success' : 'error', duration: 3000 })
+        toast({ title: '图床测试', description: res.success ? '测试成功' : '测试失败', status: res.success ? 'success' : 'error', duration: 3000 })
         // 让右上角状态徽标沿用“已连接”样式：成功则短暂提示
         if (res.success) {
           // 轻量提示已可用

@@ -1,34 +1,62 @@
-# <img src="icons/image/logo.png" width="39" height="39" alt="Meowdown Logo" style="vertical-align: middle;">   Meowdown · MdImgConverter
+# <img src="meowdown-web/public/maoer.png" width="39" height="39" alt="Meowdown Logo" style="vertical-align: middle;">   Meowdown · MdImgConverter
 
 把 Markdown 里的图片一键变身 WebP，还能自动上传到图床！(=^･ω･^=)✧
 
-![Preview](icons/image/preview.png)
+![Preview](previewStory – 1.jpg)
 
 ---
 
 ## 💫 特性
-- 🐾 一键转换：自动识别 Markdown 图片并输出 WebP
-- 🎚️ 质量可调：滑杆控制画质/体积平衡
-- 🔗 路径回写：`images/*.webp` 或外链 URL 智能替换
-- ☁️ 图床上传：支持阿里云 OSS、腾讯云 COS、七牛云、S3 兼容、GitHub 等多种图床
-- 🪄 轻量界面：Win11 风格 UI，简洁可爱
+
+### 🌟 核心功能
+- 🐾 **一键转换**：自动识别 Markdown 图片并输出 WebP 格式
+- 🎚️ **质量可调**：滑杆控制画质/体积平衡，默认 73% 最优
+- 🔗 **路径回写**：`images/*.webp` 或外链 URL 智能替换
+- ☁️ **图床上传**：支持阿里云 OSS、腾讯云 COS、七牛云、S3、GitHub 等多种图床
+
+### 🚀 应用版本
+- 🖥️ **桌面版**：基于 Tauri 构建，体积小巧、性能优秀、原生体验
+- 🌐 **Web 版**：现代化 React + Chakra UI，支持在线使用
+- 🪄 **简洁界面**：删除了调试和后端设置按钮，专注核心功能
 
 ---
 
 ## 🚀 快速上手
-- 前往仓库的 Releases 页面，下载与你系统匹配的版本（推荐 onedir 目录版）
-- Windows（onedir）：解压后运行 `dist/MdImgConverter/MdImgConverter.exe`
-- Windows（onefile）：下载 `MdImgConverter.exe` 直接双击运行
-- 首次运行若被 SmartScreen 拦截，点击“更多信息”→“仍要运行”
+
+### 🖥️ 桌面版应用（推荐）
+- 前往仓库的 Releases 页面，下载最新的桌面版本：
+  - 📦 **MSI 安装包**：`Meowdown_0.1.0_x64_en-US.msi` - 标准 Windows 安装程序
+  - 🚀 **便携版**：`Meowdown_0.1.0_x64-setup.exe` - 免安装直接运行
+- 首次运行若被 SmartScreen 拦截，点击"更多信息"→"仍要运行"
+- 基于 Tauri 构建，体积小巧、性能优秀！✨
+
+### 🌐 Web 版应用
+- 在线体验：访问部署的 Web 版本
+- 需要配合后端服务：`python meowdown-backend/main.py`
+- 适合服务器部署或本地开发使用
+
+### 👨‍💻 开发者版本
 - 想用源码运行？见 `Read.md/coder-README.md`
+- 桌面版开发：`cd desktop && npm run tauri dev`
+- Web 版开发：`cd meowdown-web && npm run dev`
 
 ---
 
 ## 🎯 使用方法
-1. 粘贴或打开 Markdown
-2. 右侧调质量（默认 73% 很香）
-3. 点「转换」→ 输出到 `images/`
-4. 需要外链？在「图床设置」保存凭据再点「上传」
+
+### 🖥️ 桌面版使用
+1. 📝 **输入内容**：粘贴或拖拽 Markdown 文件到编辑器
+2. 🎚️ **调节质量**：右侧滑杆调整压缩质量（默认 73% 很香）
+3. 🔄 **开始转换**：点击「开始转换」按钮
+4. ☁️ **上传图床**：需要外链？点击「设置」配置图床后自动上传
+5. 💾 **保存结果**：转换完成后保存新的 Markdown 文件
+
+### 🌐 Web 版使用
+1. 🚀 启动后端：`python meowdown-backend/main.py`
+2. 🌐 打开 Web 界面（通常是 `http://localhost:8000`）
+3. 📝 在左侧编辑器输入 Markdown 内容
+4. 🎛️ 右侧调节参数并点击转换
+5. 📥 下载转换后的文件
 
 ---
 
@@ -99,11 +127,14 @@
 ---
 
 ## 🧭 下一步开发
-- 增加少量用户界面动画
-- 增加其他压缩格式支持
-- 增加 md 文件渲染预览功能
-- 增加图床配置
-- 使用 web 重构 ui
+- ✅ **界面优化**：已删除调试和后端设置按钮，界面更简洁
+- ✅ **桌面版本**：基于 Tauri 的现代桌面应用已完成
+- ✅ **Web 版本**：现代化 React + Chakra UI 界面
+- 🔄 **增加少量用户界面动画**
+- 🔄 **增加其他压缩格式支持**（AVIF、JPEG XL）
+- 🔄 **增加 Markdown 文件渲染预览功能**
+- 🔄 **多语言支持**（英文、日文）
+- 🔄 **批量处理模式**
 
 ---
 

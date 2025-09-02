@@ -1,74 +1,27 @@
-import axios from 'axios'
-import type { AxiosResponse } from 'axios'
+// 使用 Rust 命令进行HTTP请求
+import { invoke } from '@tauri-apps/api/core'
+import { getApiBaseUrl } from './config'
 
-// API 基础配置
-const API_BASE_URL = 'http://127.0.0.1:8000'
-
-const apiClient = axios.create({
-  baseURL: API_BASE_URL,
-  timeout: 30000,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-})
-
-// 请求拦截器
-apiClient.interceptors.request.use(
-  (config) => {
-    console.log('API Request:', config.method?.toUpperCase(), config.url)
-    return config
-  },
-  (error) => {
-    return Promise.reject(error)
-  }
-)
-
-// 响应拦截器
-apiClient.interceptors.response.use(
-  (response) => {
-    console.log('API Response:', response.status, response.config.url)
-    return response
-  },
-  (error) => {
-    console.error('API Error:', error.response?.status, error.response?.data)
-    return Promise.reject(error)
-  }
-)
-
-// 类型定义
-export interface ConversionRequest {
-  markdown: string
-  quality: number
-  output_dir?: string
-  use_image_bed?: boolean
-  image_bed_provider?: string
-  image_bed_config?: Record<string, any>
-}
-
+// 响应接口定义
 export interface ConversionResponse {
   success: boolean
   message: string
   new_markdown?: string
   stats?: {
-    totalOriginalSize: number
-    totalConvertedSize: number
-    compressionRatio: number
-    sizeSaved: number
+    total_images: number
+    converted_images: number
+    failed_images: number
+    skipped_images: number
+    conversion_time: number
   }
-  task_id?: string
 }
 
-export interface TaskStatus {
-  status: string
-  progress: number
-  message: string
-  result?: any
-}
-
-export interface ImageBedConfig {
-  provider: string
-  enabled: boolean
-  config: Record<string, any>
+export interface ConversionRequest {
+  markdown: string
+  quality?: number
+  use_image_bed?: boolean
+  image_bed_provider?: string
+  image_bed_config?: Record<string, any>
 }
 
 export interface HealthStatus {
@@ -77,132 +30,75 @@ export interface HealthStatus {
   upload_available: boolean
 }
 
+export interface ImageBedConfig {
+  type: string
+  provider: string
+  enabled: boolean
+  config: Record<string, any>
+}
+
+export interface WebSocketManager {
+  // WebSocket管理器接口（如果需要的话）
+}
+
 // API 服务类
 export class MeowdownAPI {
+  private static async httpGet<T>(path: string): Promise<T> {
+    const url = `${getApiBaseUrl()}${path}`
+    
+    try {
+      const response = await invoke('http_get', { url })
+      return JSON.parse(response as string) as T
+    } catch (e) {
+      console.error('HTTP GET 请求失败:', e)
+      throw e
+    }
+  }
+
+  private static async httpPost<T>(path: string, body: any): Promise<T> {
+    const url = `${getApiBaseUrl()}${path}`
+    
+    try {
+      const response = await invoke('http_post', { 
+        url, 
+        body: JSON.stringify(body) 
+      })
+      
+      return JSON.parse(response as string) as T
+    } catch (e) {
+      console.error('HTTP POST 请求失败:', e)
+      throw e
+    }
+  }
+
   // 健康检查
   static async healthCheck(): Promise<HealthStatus> {
-    const response: AxiosResponse<HealthStatus> = await apiClient.get('/health')
-    return response.data
+    return await this.httpGet<HealthStatus>('/health')
   }
 
   // 转换 Markdown
   static async convertMarkdown(request: ConversionRequest): Promise<ConversionResponse> {
-    const response: AxiosResponse<ConversionResponse> = await apiClient.post('/api/convert', request)
-    return response.data
+    return await this.httpPost<ConversionResponse>('/convert', request)
   }
 
-  // 获取任务状态
-  static async getTaskStatus(taskId: string): Promise<TaskStatus> {
-    const response: AxiosResponse<TaskStatus> = await apiClient.get(`/api/task/${taskId}`)
-    return response.data
-  }
-
-  // 上传文件到图床
-  static async uploadToImageBed(files: File[], config?: ImageBedConfig): Promise<any> {
-    const formData = new FormData()
-    
-    files.forEach((file) => {
-      formData.append('files', file)
-    })
-    
-    if (config) {
-      formData.append('config', JSON.stringify(config))
-    }
-
-    const response = await apiClient.post('/api/upload', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    })
-    
-    return response.data
-  }
-
-  // 保存图床配置
-  static async saveImageBedConfig(config: ImageBedConfig): Promise<any> {
-    const response = await apiClient.post('/api/imagebed/config', config)
-    return response.data
-  }
-
-  // 获取图床配置
-  static async getImageBedConfig(): Promise<ImageBedConfig> {
-    const response: AxiosResponse<ImageBedConfig> = await apiClient.get('/api/imagebed/config')
-    return response.data
+  // 上传文件
+  static async uploadFile(_file: File): Promise<{ url: string }> {
+    // 注意：文件上传可能需要特殊处理，暂时保留这个接口
+    throw new Error('文件上传功能待实现')
   }
 
   // 测试图床配置
-  static async testImageBedConfig(config: ImageBedConfig): Promise<{ success: boolean; message: string }> {
-    const response: AxiosResponse<{ success: boolean; message: string }> = await apiClient.post('/api/imagebed/test', config)
-    return response.data
+  static async testImageBedConfig(config: Record<string, any>): Promise<{ success: boolean }> {
+    return await this.httpPost<{ success: boolean }>('/image-bed/test', config)
+  }
+
+  // 获取图床配置
+  static async getImageBedConfig(): Promise<Record<string, any>> {
+    return await this.httpGet<Record<string, any>>('/image-bed/config')
+  }
+
+  // 保存图床配置
+  static async saveImageBedConfig(config: Record<string, any>): Promise<{ success: boolean }> {
+    return await this.httpPost<{ success: boolean }>('/image-bed/config', config)
   }
 }
-
-// WebSocket 连接管理
-export class WebSocketManager {
-  private ws: WebSocket | null = null
-  private taskId: string
-  private onProgress: (progress: number, message: string) => void
-  private onComplete: (result: any) => void
-  private onError: (error: string) => void
-
-  constructor(
-    taskId: string,
-    onProgress: (progress: number, message: string) => void,
-    onComplete: (result: any) => void,
-    onError: (error: string) => void
-  ) {
-    this.taskId = taskId
-    this.onProgress = onProgress
-    this.onComplete = onComplete
-    this.onError = onError
-  }
-
-  connect(): void {
-    const wsUrl = `ws://127.0.0.1:8000/ws/${this.taskId}`
-    
-    try {
-      this.ws = new WebSocket(wsUrl)
-      
-      this.ws.onopen = () => {
-        console.log('WebSocket connected:', this.taskId)
-      }
-      
-      this.ws.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data)
-          
-          if (data.completed) {
-            this.onComplete(data)
-            this.disconnect()
-          } else {
-            this.onProgress(data.progress, data.message)
-          }
-        } catch (error) {
-          console.error('WebSocket message parse error:', error)
-        }
-      }
-      
-      this.ws.onerror = (error) => {
-        console.error('WebSocket error:', error)
-        this.onError('WebSocket 连接错误')
-      }
-      
-      this.ws.onclose = () => {
-        console.log('WebSocket disconnected:', this.taskId)
-      }
-      
-    } catch (error) {
-      console.error('WebSocket connection failed:', error)
-      this.onError('无法连接到服务器')
-    }
-  }
-
-  disconnect(): void {
-    if (this.ws) {
-      this.ws.close()
-      this.ws = null
-    }
-  }
-}
-
-export default MeowdownAPI

@@ -13,7 +13,7 @@ export const ImageBedStatusBadge: React.FC = () => {
       try {
         setLoading(true)
         const cfg = await MeowdownAPI.getImageBedConfig()
-        if (mounted) setConfig(cfg)
+        if (mounted) setConfig(cfg as ImageBedConfig)
       } catch {
         if (mounted) setConfig(null)
       } finally {

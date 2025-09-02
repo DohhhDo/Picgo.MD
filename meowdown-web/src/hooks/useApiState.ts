@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react'
-import { MeowdownAPI, WebSocketManager } from '../services/api'
+import { MeowdownAPI } from '../services/api'
 import type { ConversionRequest, ConversionResponse } from '../services/api'
 
 interface ApiState {
@@ -22,19 +22,20 @@ const initialState: ApiState = {
 
 export const useApiState = () => {
   const [state, setState] = useState<ApiState>(initialState)
-  const [wsManager, setWsManager] = useState<WebSocketManager | null>(null)
+
 
   // 检查后端连接状态
   const checkConnection = useCallback(async () => {
     try {
-      const health = await MeowdownAPI.healthCheck()
+      await MeowdownAPI.healthCheck()
       setState(prev => ({
         ...prev,
-        isConnected: health.status === 'healthy',
+        isConnected: true,
         error: null,
       }))
-      return health.status === 'healthy'
+      return true
     } catch (error) {
+      // 不再回退 axios，直接提示未连接
       setState(prev => ({
         ...prev,
         isConnected: false,
@@ -55,51 +56,22 @@ export const useApiState = () => {
     }))
 
     try {
-      // 发送转换请求
+      // 发送转换请求（后端会在完成后才返回，因此直接以返回结果为准更新状态）
       const response = await MeowdownAPI.convertMarkdown(request)
-      
-      if (response.success && response.task_id) {
-        // 创建 WebSocket 连接监听进度
-        const manager = new WebSocketManager(
-          response.task_id,
-          // onProgress
-          (progress: number, message: string) => {
-            setState(prev => ({
-              ...prev,
-              progress,
-              progressMessage: message,
-            }))
-          },
-          // onComplete
-          (result: any) => {
-            setState(prev => ({
-              ...prev,
-              isConverting: false,
-              progress: 100,
-              progressMessage: '转换完成！',
-              lastResult: response,
-            }))
-            setWsManager(null)
-          },
-          // onError
-          (error: string) => {
-            setState(prev => ({
-              ...prev,
-              isConverting: false,
-              error,
-              progressMessage: '转换失败',
-            }))
-            setWsManager(null)
-          }
-        )
 
-        manager.connect()
-        setWsManager(manager)
-        
+      if (response.success) {
+        setState(prev => ({
+          ...prev,
+          isConverting: false,
+          progress: 100,
+          progressMessage: '转换完成！',
+          lastResult: response,
+        }))
+        // 如需实时进度，需服务端先返回 task_id 后异步处理；当前实现为同步返回，故不再依赖 WS。
         return response
-      } else {
-        throw new Error(response.message || '转换请求失败')
       }
+
+      throw new Error(response.message || '转换请求失败')
     } catch (error) {
       setState(prev => ({
         ...prev,
@@ -113,12 +85,8 @@ export const useApiState = () => {
 
   // 重置状态
   const resetState = useCallback(() => {
-    if (wsManager) {
-      wsManager.disconnect()
-      setWsManager(null)
-    }
     setState(initialState)
-  }, [wsManager])
+  }, [])
 
   // 组件挂载时检查连接
   useEffect(() => {
@@ -129,11 +97,8 @@ export const useApiState = () => {
     
     return () => {
       clearInterval(interval)
-      if (wsManager) {
-        wsManager.disconnect()
-      }
     }
-  }, [checkConnection, wsManager])
+  }, [checkConnection])
 
   return {
     state,

@@ -20,11 +20,36 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from fastapi.staticfiles import StaticFiles
+from starlette.middleware.base import BaseHTTPMiddleware
 import uvicorn
 import requests
+try:
+    import oss2 as _oss2
+except Exception:
+    _oss2 = None
+
+# 运行环境路径检测（开发/打包）
+def _detect_base_dirs():
+    if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
+        # PyInstaller 解包临时目录（放置随包资源）
+        meipass = Path(getattr(sys, "_MEIPASS"))
+        # 打包后：写入用户目录，避免 Program Files 权限问题
+        try:
+            local_appdata = os.environ.get("LOCALAPPDATA") or os.environ.get("APPDATA")
+        except Exception:
+            local_appdata = None
+        if local_appdata:
+            writable = Path(local_appdata) / "Meowdown"
+        else:
+            writable = Path.home() / ".meowdown"
+        writable.mkdir(parents=True, exist_ok=True)
+        return meipass, writable
+    # 源码运行：以仓库根为基准
+    repo_root = Path(__file__).parent.parent
+    return repo_root, repo_root
 
 # 添加项目路径
-project_root = Path(__file__).parent.parent
+project_root, writable_root = _detect_base_dirs()
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
@@ -104,6 +129,108 @@ except Exception as e:
     except Exception as e2:
         print(f"Warning: Could not set conversion classes: {e2}")
 
+# 最后兜底：若仍未获得 MarkdownImageProcessor，则提供一个最小可用实现
+if MarkdownImageProcessor is None:
+    print("Warning: using built-in fallback MarkdownImageProcessor")
+    from PIL import Image
+    import re
+    import io
+    import requests as _req
+
+    class _FallbackProcessor:
+        def __init__(self, webp_quality: int = 80):
+            self.quality = max(1, min(100, int(webp_quality)))
+            self._cb = None
+
+        def set_progress_callback(self, cb):
+            self._cb = cb
+
+        def _progress(self, p: int, m: str):
+            try:
+                if self._cb:
+                    self._cb(p, m)
+            except Exception:
+                pass
+
+        def _find_images(self, text: str):
+            pat = r'(?:!\[.*?\]\s*\((.*?)\))|(?:<img.*?src=["\']([^"\']*)["\'].*?>)'
+            res = re.findall(pat, text or "")
+            out = []
+            for a, b in res:
+                u = a or b
+                if u:
+                    u = u.strip()
+                    if u.startswith('<') and u.endswith('>'):
+                        u = u[1:-1].strip()
+                    out.append(u)
+            return out
+
+        def _save_webp(self, pil_img: Image.Image, out_path: str):
+            save_kwargs = {
+                "format": "WEBP",
+                "quality": self.quality,
+                "optimize": True,
+                "method": 6,
+            }
+            pil_img.save(out_path, **save_kwargs)
+
+        def process_markdown(self, markdown_text: str, output_dir: str = "images"):
+            os.makedirs(output_dir, exist_ok=True)
+            urls = self._find_images(markdown_text)
+            if not urls:
+                self._progress(100, "未找到图片链接")
+                return markdown_text, 0, {"total_original_size": 0, "total_converted_size": 0, "compression_ratio": 0, "size_saved": 0}
+
+            self._progress(10, f"找到 {len(urls)} 个图片链接")
+            new_md = markdown_text
+            succ = 0
+            tot_o = 0
+            tot_c = 0
+
+            for i, u in enumerate(urls):
+                self._progress(10 + (i * 80 // max(1, len(urls))), f"处理图片 {i+1}/{len(urls)}")
+                try:
+                    if u.startswith(('http://', 'https://')):
+                        r = _req.get(u, timeout=(8, 25))
+                        r.raise_for_status()
+                        img = Image.open(io.BytesIO(r.content))
+                        if img.mode not in ("RGB", "L"):
+                            img = img.convert("RGB")
+                        name = f"img_{i+1}.webp"
+                        outp = os.path.join(output_dir, name)
+                        self._save_webp(img, outp)
+                        o = len(r.content)
+                        c = os.path.getsize(outp)
+                        tot_o += o
+                        tot_c += c
+                        rel = os.path.relpath(outp, os.path.dirname(output_dir)).replace('\\', '/')
+                        for old in (f"<{u}>", u):
+                            new_md = new_md.replace(old, rel)
+                        succ += 1
+                    elif os.path.exists(u):
+                        img = Image.open(u)
+                        if img.mode not in ("RGB", "L"):
+                            img = img.convert("RGB")
+                        base = os.path.splitext(os.path.basename(u))[0] + ".webp"
+                        outp = os.path.join(output_dir, base)
+                        self._save_webp(img, outp)
+                        o = os.path.getsize(u)
+                        c = os.path.getsize(outp)
+                        tot_o += o
+                        tot_c += c
+                        rel = os.path.relpath(outp, os.path.dirname(output_dir)).replace('\\', '/')
+                        for old in (f"<{u}>", u):
+                            new_md = new_md.replace(old, rel)
+                        succ += 1
+                except Exception:
+                    continue
+
+            ratio = (tot_o - tot_c) / tot_o * 100 if tot_o > 0 else 0
+            stats = {"total_original_size": tot_o, "total_converted_size": tot_c, "compression_ratio": ratio, "size_saved": tot_o - tot_c}
+            self._progress(100, f"转换完成！成功转换 {succ} 张图片")
+            return new_md, succ, stats
+
+    MarkdownImageProcessor = _FallbackProcessor
 # 创建 FastAPI 应用
 app = FastAPI(
     title="Meowdown API",
@@ -121,14 +248,35 @@ app.add_middleware(
         "http://127.0.0.1:5175",
         "http://localhost:3000",
         "http://127.0.0.1:3000",
+        # Tauri 应用打包后的来源
+        "tauri://localhost",
+        "app://localhost",
+        "https://tauri.localhost",
+        "http://tauri.localhost",
+        # 允许所有 tauri 相关的 origin
+        "*",
     ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# 静态文件：持久输出目录
-OUTPUTS_ROOT = (project_root / "outputs").resolve()
+# 为 Chrome/Edge 的 Private Network Access(PNA) 预检添加响应头，安装版（tauri://localhost）到 127.0.0.1 可能触发预检
+class _AddPnaHeaderMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        response = await call_next(request)
+        try:
+            origin = request.headers.get("origin") or request.headers.get("Origin")
+            if origin:
+                response.headers["Access-Control-Allow-Private-Network"] = "true"
+        except Exception:
+            pass
+        return response
+
+app.add_middleware(_AddPnaHeaderMiddleware)
+
+# 静态文件：持久输出目录（打包后放在可执行文件同级）
+OUTPUTS_ROOT = (writable_root / "outputs").resolve()
 OUTPUTS_ROOT.mkdir(parents=True, exist_ok=True)
 app.mount("/static", StaticFiles(directory=str(OUTPUTS_ROOT)), name="static")
 
@@ -293,12 +441,19 @@ async def convert_markdown(request: ConversionRequest):
         # 在线程池中运行同步转换
         import concurrent.futures
 
+        # 复用当前请求所在事件循环，避免在子线程频繁创建/销毁新事件循环导致卡顿或崩溃
+        main_loop = asyncio.get_running_loop()
+
         def sync_convert():
             def sync_progress_callback(progress: int, message: str):
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-                loop.run_until_complete(progress_callback(progress, message))
-                loop.close()
+                try:
+                    fut = asyncio.run_coroutine_threadsafe(
+                        progress_callback(progress, message), main_loop
+                    )
+                    # 避免阻塞：不等待结果，仅在出现异常时静默忽略
+                    _ = fut
+                except Exception:
+                    pass
 
             processor.set_progress_callback(sync_progress_callback)
             return processor.process_markdown(request.markdown, output_dir)
@@ -981,10 +1136,13 @@ async def test_imagebed_config(config: ImageBedConfig):
         return {"success": False, "message": f"测试失败: {e}"}
 
 if __name__ == "__main__":
+    # 在打包环境（PyInstaller）下禁用热重载，避免 watchfiles 反复重启
+    is_frozen = bool(getattr(sys, "frozen", False))
+    reload_flag = False if is_frozen else bool(os.getenv("UVICORN_RELOAD", "1") not in ("0", "false", "False"))
     uvicorn.run(
-        "main:app", 
-        host="127.0.0.1", 
-        port=8000, 
-        reload=True,
-        log_level="info"
+        app,
+        host="127.0.0.1",
+        port=8000,
+        reload=reload_flag,
+        log_level="info",
     )

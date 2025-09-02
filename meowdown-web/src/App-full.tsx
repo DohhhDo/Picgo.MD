@@ -68,7 +68,7 @@ function App() {
       const response = await startConversion({
         markdown,
         quality,
-        output_dir: 'images'
+
       })
 
       if (response.success) {

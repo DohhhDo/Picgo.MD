@@ -1,0 +1,43 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Meowdown",
+  "version": "0.1.0",
+  "identifier": "com.meowdown.desktop",
+  "build": {
+    "beforeDevCommand": "npm run dev --prefix ../meowdown-web -- --host 127.0.0.1 --port 3000",
+    "devUrl": "http://127.0.0.1:3000",
+    "beforeBuildCommand": "npm run build --prefix ../meowdown-web",
+    "frontendDist": "../../meowdown-web/dist"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "security": {
+      "csp": null
+    },
+    "windows": [
+      {
+        "title": "Meowdown",
+        "width": 1200,
+        "height": 800,
+        "devtools": true
+      }
+    ]
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "externalBin": [
+      "./bin/meowdown-backend"
+    ],
+    "icon": [
+      "../../icons/app_icon.ico",
+      "../../meowdown-web/public/maoer.png",
+      "../../icons/windows/icon_256x256.png",
+      "../../icons/windows/icon_128x128.png",
+      "../../icons/windows/icon_64x64.png",
+      "../../icons/windows/icon_48x48.png",
+      "../../icons/windows/icon_32x32.png",
+      "../../icons/windows/icon_16x16.png"
+    ]
+  }
+}

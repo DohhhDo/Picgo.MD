@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import { AppState, ConversionResult, ProgressCallback } from '../types'
+import type { AppState, ProgressCallback } from '../types'
 
 const initialState: AppState = {
   markdown: '',
