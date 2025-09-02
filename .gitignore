@@ -208,5 +208,19 @@ _trial_temp
 **/secrets.py
 **/*_secret*
 **/*_private*
+.env
 .env.local
 .env.production
+.env.*
+
+# 运行期输出（包含本地密钥配置）
+/outputs/
+/outputs/imagebed_config.json
+
+# 常见证书/密钥文件
+*.pem
+*.key
+*.p12
+*.pfx
+*.cer
+*.der
