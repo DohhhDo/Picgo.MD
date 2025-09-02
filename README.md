@@ -2,7 +2,7 @@
 
 把 Markdown 里的图片一键变身 WebP，还能自动上传到图床！(=^･ω･^=)✧
 
-![Preview](icons/image/previewStory – 1.jpg)
+![Preview](/icons/image/previewStory – 1.jpg)
 
 ---
 
