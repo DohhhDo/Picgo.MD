@@ -2,6 +2,12 @@
 
 把 Markdown 里的图片一键变身 WebP，还能自动上传到图床！(=^･ω･^=)✧
 
+## 🌍 多语言版本 | Multi-language Versions
+- 🇨🇳 [中文](README.md) (当前页面)
+- 🇺🇸 [English](Read.md/README-en.md)
+- 🇪🇸 [Español](Read.md/README-es.md)
+- 🇫🇷 [Français](Read.md/README-fr.md)
+
 ![Preview](icons/image/preview.png)
 
 ---
@@ -126,14 +132,25 @@
 
 ---
 
+## 🌍 多语言支持
+应用程序现在支持多种语言：
+- 🇨🇳 **中文**（默认）
+- 🇺🇸 **英文**
+- 🇪🇸 **西班牙语**
+- 🇫🇷 **法语**
+
+您可以使用界面右上角的语言选择器来切换语言。
+
+---
+
 ## 🧭 下一步开发
 - ✅ **界面优化**：已删除调试和后端设置按钮，界面更简洁
 - ✅ **桌面版本**：基于 Tauri 的现代桌面应用已完成
 - ✅ **Web 版本**：现代化 React + Chakra UI 界面
+- ✅ **多语言支持**：中文、英文、西班牙语、法语
 - 🔄 **增加少量用户界面动画**
 - 🔄 **增加其他压缩格式支持**（AVIF、JPEG XL）
 - 🔄 **增加 Markdown 文件渲染预览功能**
-- 🔄 **多语言支持**（英文、日文）
 - 🔄 **批量处理模式**
 
 ---
@@ -146,7 +163,10 @@ MIT. 欢迎二次开发与同人创作（记得保留署名喵）。
 ## 📚 文档导航
 
 ### 🎯 用户文档
-- **[README.md](README.md)** - 项目主页，快速上手指南
+- **[README.md](README.md)** - 项目主页，快速上手指南（中文）
+- **[Read.md/README-en.md](Read.md/README-en.md)** - 项目主页（英文版）
+- **[Read.md/README-es.md](Read.md/README-es.md)** - 项目主页（西班牙语版）
+- **[Read.md/README-fr.md](Read.md/README-fr.md)** - 项目主页（法语版）
 - **[Read.md/BUILD_GUIDE.md](Read.md/BUILD_GUIDE.md)** - 详细的构建和打包指南
 - **[Read.md/PACKAGING_COMPARISON.md](Read.md/PACKAGING_COMPARISON.md)** - 打包配置对比分析
 

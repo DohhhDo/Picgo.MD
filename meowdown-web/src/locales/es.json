@@ -1,0 +1,64 @@
+{
+  "app": {
+    "title": "Meowdown",
+    "subtitle": "Convertidor de Imágenes Markdown",
+    "description": "¡Convierte imágenes de Markdown a formato WebP y súbelas a servicios de alojamiento de imágenes con un clic!"
+  },
+  "header": {
+    "openFile": "Abrir Archivo",
+    "saveFile": "Guardar Archivo",
+    "settings": "Configuración",
+    "theme": "Tema",
+    "connected": "Conectado",
+    "disconnected": "Desconectado"
+  },
+  "status": {
+    "ready": "Listo",
+    "converting": "Convirtiendo",
+    "uploading": "Subiendo",
+    "processing": "Procesando",
+    "completed": "Completado",
+    "quality": "Calidad"
+  },
+  "alerts": {
+    "backendDisconnected": "¡Servicio backend no conectado!",
+    "backendDisconnectedDesc": "Por favor inicia el servicio backend (python meowdown-backend/main.py) para usar las funciones de conversión",
+    "reconnect": "Reconectar"
+  },
+  "editor": {
+    "placeholder": "Edita el contenido Markdown aquí...\n\nEjemplo:\n# Título\n![Descripción de imagen](enlace-imagen)"
+  },
+  "control": {
+    "quality": "Calidad de Compresión",
+    "convert": "Iniciar Conversión",
+    "converting": "Convirtiendo...",
+    "progress": "Progreso"
+  },
+  "messages": {
+    "fileLoaded": "Archivo Cargado",
+    "fileLoadedDesc": "Se cargó exitosamente {{filename}}",
+    "fileSaved": "Archivo Guardado",
+    "fileSavedDesc": "El archivo Markdown se ha descargado localmente",
+    "invalidFormat": "Formato de Archivo Inválido",
+    "invalidFormatDesc": "Por favor selecciona un archivo Markdown en formato .md",
+    "emptyContent": "Por favor ingresa contenido Markdown",
+    "conversionStarted": "Conversión Iniciada",
+    "conversionStartedDesc": "Procesando conversión de imágenes...",
+    "conversionCompleted": "Conversión Completada",
+    "conversionFailed": "Conversión Fallida",
+    "error": "Error"
+  },
+  "footer": {
+    "description": "Versión Web Moderna - Construida con React + Chakra UI"
+  },
+  "imageBed": {
+    "title": "Configuración de Alojamiento de Imágenes",
+    "enabled": "Habilitar Alojamiento de Imágenes",
+    "provider": "Proveedor de Servicio",
+    "config": "Configuración",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "clear": "Limpiar",
+    "test": "Probar Subida"
+  }
+}

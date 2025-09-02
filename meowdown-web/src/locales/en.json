@@ -1,0 +1,64 @@
+{
+  "app": {
+    "title": "Meowdown",
+    "subtitle": "Markdown Image Converter",
+    "description": "Convert Markdown images to WebP format and upload to image hosting services with one click!"
+  },
+  "header": {
+    "openFile": "Open File",
+    "saveFile": "Save File",
+    "settings": "Settings",
+    "theme": "Theme",
+    "connected": "Connected",
+    "disconnected": "Disconnected"
+  },
+  "status": {
+    "ready": "Ready",
+    "converting": "Converting",
+    "uploading": "Uploading",
+    "processing": "Processing",
+    "completed": "Completed",
+    "quality": "Quality"
+  },
+  "alerts": {
+    "backendDisconnected": "Backend service not connected!",
+    "backendDisconnectedDesc": "Please start the backend service (python meowdown-backend/main.py) to use conversion features",
+    "reconnect": "Reconnect"
+  },
+  "editor": {
+    "placeholder": "Edit Markdown content here...\n\nExample:\n# Title\n![Image description](image-link)"
+  },
+  "control": {
+    "quality": "Compression Quality",
+    "convert": "Start Conversion",
+    "converting": "Converting...",
+    "progress": "Progress"
+  },
+  "messages": {
+    "fileLoaded": "File Loaded",
+    "fileLoadedDesc": "Successfully loaded {{filename}}",
+    "fileSaved": "File Saved",
+    "fileSavedDesc": "Markdown file has been downloaded locally",
+    "invalidFormat": "Invalid File Format",
+    "invalidFormatDesc": "Please select a .md format Markdown file",
+    "emptyContent": "Please enter Markdown content",
+    "conversionStarted": "Conversion Started",
+    "conversionStartedDesc": "Processing image conversion...",
+    "conversionCompleted": "Conversion Completed",
+    "conversionFailed": "Conversion Failed",
+    "error": "Error"
+  },
+  "footer": {
+    "description": "Modern Web Version - Built with React + Chakra UI"
+  },
+  "imageBed": {
+    "title": "Image Hosting Settings",
+    "enabled": "Enable Image Hosting",
+    "provider": "Service Provider",
+    "config": "Configuration",
+    "save": "Save",
+    "cancel": "Cancel",
+    "clear": "Clear",
+    "test": "Test Upload"
+  }
+}

@@ -59,9 +59,7 @@ class WebPConverter:
                 if img.mode == "RGBA":
                     # 创建白色背景
                     background = Image.new("RGB", img.size, (255, 255, 255))
-                    background.paste(
-                        img, mask=img.split()[-1]
-                    )  # 使用alpha通道作为mask
+                    background.paste(img, mask=img.split()[-1])  # 使用alpha通道作为mask
                     img = background
                 elif img.mode not in ("RGB", "L"):
                     img = img.convert("RGB")
@@ -111,9 +109,7 @@ class WebPConverter:
                     "AppleWebKit/537.36 (KHTML, like Gecko) "
                     "Chrome/124.0 Safari/537.36"
                 ),
-                "Accept": (
-                    "image/avif,image/webp,image/apng,image/*,*/*;q=0.8"
-                ),
+                "Accept": ("image/avif,image/webp,image/apng,image/*,*/*;q=0.8"),
             }
 
             # 处理包含空格与中文字符的 URL（例如阿里云 OSS 对象名中存在空格）
@@ -164,9 +160,7 @@ class WebPConverter:
             timestamp = time.strftime("%Y%m%d_%H%M%S", time.localtime())
             temp_name = f"img_{timestamp}_{random.randint(1000, 9999)}"
 
-            with tempfile.NamedTemporaryFile(
-                delete=False, suffix=".tmp"
-            ) as temp_file:
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".tmp") as temp_file:
                 for chunk in resp.iter_content(chunk_size=64 * 1024):
                     if not chunk:
                         continue
@@ -220,9 +214,7 @@ class MarkdownImageProcessor:
     def find_image_links(self, markdown_text: str) -> List[str]:
         """查找Markdown中的所有图片链接"""
         # 匹配 ![alt](url) 和 <img src="url"> 格式；允许 ] 与 ( 之间存在空格
-        pattern = (
-            r'(?:!\[.*?\]\s*\((.*?)\))|(?:<img.*?src=["\']([^"\']*)["\'].*?>)'
-        )
+        pattern = r'(?:!\[.*?\]\s*\((.*?)\))|(?:<img.*?src=["\']([^"\']*)["\'].*?>)'
         matches = re.findall(pattern, markdown_text)
 
         # 提取非空的URL
@@ -282,9 +274,7 @@ class MarkdownImageProcessor:
         for i, url in enumerate(image_urls):
             try:
                 progress = 10 + (i * 80 // len(image_urls))
-                self._update_progress(
-                    progress, f"处理图片 {i+1}/{len(image_urls)}"
-                )
+                self._update_progress(progress, f"处理图片 {i+1}/{len(image_urls)}")
 
                 if url.startswith(("http://", "https://")):
                     # 网络图片：下载并转换

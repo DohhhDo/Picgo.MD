@@ -1,0 +1,64 @@
+{
+  "app": {
+    "title": "Meowdown",
+    "subtitle": "Markdown 图片转换器",
+    "description": "把 Markdown 里的图片一键变身 WebP，还能自动上传到图床！"
+  },
+  "header": {
+    "openFile": "打开文件",
+    "saveFile": "保存文件",
+    "settings": "设置",
+    "theme": "主题",
+    "connected": "已连接",
+    "disconnected": "未连接"
+  },
+  "status": {
+    "ready": "就绪",
+    "converting": "转换中",
+    "uploading": "上传中",
+    "processing": "处理中",
+    "completed": "已完成",
+    "quality": "质量"
+  },
+  "alerts": {
+    "backendDisconnected": "后端服务未连接！",
+    "backendDisconnectedDesc": "请启动后端服务 (python meowdown-backend/main.py) 以使用转换功能",
+    "reconnect": "重新连接"
+  },
+  "editor": {
+    "placeholder": "在此编辑Markdown内容...\n\n示例:\n# 标题\n![图片描述](图片链接)"
+  },
+  "control": {
+    "quality": "压缩质量",
+    "convert": "开始转换",
+    "converting": "转换中...",
+    "progress": "进度"
+  },
+  "messages": {
+    "fileLoaded": "文件已加载",
+    "fileLoadedDesc": "成功加载 {{filename}}",
+    "fileSaved": "文件已保存",
+    "fileSavedDesc": "Markdown 文件已下载到本地",
+    "invalidFormat": "文件格式错误",
+    "invalidFormatDesc": "请选择 .md 格式的 Markdown 文件",
+    "emptyContent": "请输入 Markdown 内容",
+    "conversionStarted": "转换开始",
+    "conversionStartedDesc": "正在处理图片转换...",
+    "conversionCompleted": "转换完成",
+    "conversionFailed": "转换失败",
+    "error": "错误"
+  },
+  "footer": {
+    "description": "现代化 Web 版本 - 基于 React + Chakra UI"
+  },
+  "imageBed": {
+    "title": "图床设置",
+    "enabled": "启用图床",
+    "provider": "图床服务商",
+    "config": "配置参数",
+    "save": "保存",
+    "cancel": "取消",
+    "clear": "清空",
+    "test": "测试上传"
+  }
+}

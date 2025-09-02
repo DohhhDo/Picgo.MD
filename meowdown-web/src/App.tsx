@@ -18,15 +18,17 @@ import {
 import { MoonIcon, SunIcon, SettingsIcon, CheckCircleIcon, WarningIcon } from '@chakra-ui/icons'
 import { useState, useEffect, useRef } from 'react'
 import { useApiState } from './hooks/useApiState'
-import { MarkdownEditor, ControlPanel, FileOperations, StatsDisplay, ImageBedSettingsModal } from './components'
+import { MarkdownEditor, ControlPanel, FileOperations, StatsDisplay, ImageBedSettingsModal, LanguageSelector } from './components'
 import { MeowdownAPI } from './services/api'
 
 import { ImageBedStatusBadge } from './components'
 import { FiUpload, FiDownload } from 'react-icons/fi'
+import { useTranslation } from 'react-i18next'
 
 function App() {
   const toast = useToast()
   const { colorMode, toggleColorMode } = useColorMode()
+  const { t } = useTranslation()
   
   // 应用状态
   const [markdown, setMarkdown] = useState('')
@@ -290,8 +292,9 @@ function App() {
 
           {/* 工具按钮 */}
           <HStack spacing={2}>
+            <LanguageSelector />
             <Button size="sm" variant="ghost" leftIcon={<SettingsIcon />} onClick={() => setIsImageBedOpen(true)}>
-              设置
+              {t('header.settings')}
             </Button>
 
             <Button
@@ -300,7 +303,7 @@ function App() {
               leftIcon={colorMode === 'light' ? <MoonIcon /> : <SunIcon />}
               onClick={toggleColorMode}
             >
-              主题
+              {t('header.theme')}
             </Button>
           </HStack>
         </HStack>

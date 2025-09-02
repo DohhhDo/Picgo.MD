@@ -1,0 +1,64 @@
+{
+  "app": {
+    "title": "Meowdown",
+    "subtitle": "Convertisseur d'Images Markdown",
+    "description": "Convertissez les images Markdown au format WebP et téléchargez-les vers des services d'hébergement d'images en un clic !"
+  },
+  "header": {
+    "openFile": "Ouvrir Fichier",
+    "saveFile": "Enregistrer Fichier",
+    "settings": "Paramètres",
+    "theme": "Thème",
+    "connected": "Connecté",
+    "disconnected": "Déconnecté"
+  },
+  "status": {
+    "ready": "Prêt",
+    "converting": "Conversion",
+    "uploading": "Téléchargement",
+    "processing": "Traitement",
+    "completed": "Terminé",
+    "quality": "Qualité"
+  },
+  "alerts": {
+    "backendDisconnected": "Service backend non connecté !",
+    "backendDisconnectedDesc": "Veuillez démarrer le service backend (python meowdown-backend/main.py) pour utiliser les fonctions de conversion",
+    "reconnect": "Reconnecter"
+  },
+  "editor": {
+    "placeholder": "Éditez le contenu Markdown ici...\n\nExemple :\n# Titre\n![Description d'image](lien-image)"
+  },
+  "control": {
+    "quality": "Qualité de Compression",
+    "convert": "Démarrer la Conversion",
+    "converting": "Conversion en cours...",
+    "progress": "Progrès"
+  },
+  "messages": {
+    "fileLoaded": "Fichier Chargé",
+    "fileLoadedDesc": "{{filename}} chargé avec succès",
+    "fileSaved": "Fichier Enregistré",
+    "fileSavedDesc": "Le fichier Markdown a été téléchargé localement",
+    "invalidFormat": "Format de Fichier Invalide",
+    "invalidFormatDesc": "Veuillez sélectionner un fichier Markdown au format .md",
+    "emptyContent": "Veuillez saisir du contenu Markdown",
+    "conversionStarted": "Conversion Démarrée",
+    "conversionStartedDesc": "Traitement de la conversion d'images...",
+    "conversionCompleted": "Conversion Terminée",
+    "conversionFailed": "Conversion Échouée",
+    "error": "Erreur"
+  },
+  "footer": {
+    "description": "Version Web Moderne - Construite avec React + Chakra UI"
+  },
+  "imageBed": {
+    "title": "Paramètres d'Hébergement d'Images",
+    "enabled": "Activer l'Hébergement d'Images",
+    "provider": "Fournisseur de Service",
+    "config": "Configuration",
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "clear": "Effacer",
+    "test": "Tester le Téléchargement"
+  }
+}

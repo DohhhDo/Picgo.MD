@@ -1,6 +1,17 @@
-// 使用 Rust 命令进行HTTP请求
-import { invoke } from '@tauri-apps/api/core'
+// HTTP请求处理 - 支持Web和Tauri环境
 import { getApiBaseUrl } from './config'
+
+// 检测是否在Tauri环境中
+const isTauriEnvironment = typeof window !== 'undefined' && (window as any).__TAURI__
+
+// Tauri invoke函数（仅在Tauri环境中可用）
+let tauriInvoke: ((cmd: string, args?: any) => Promise<any>) | null = null
+
+// 如果在Tauri环境中，设置invoke函数
+if (isTauriEnvironment) {
+  // 这个会在运行时动态设置，编译时不会报错
+  tauriInvoke = (window as any).__TAURI__.invoke
+}
 
 // 响应接口定义
 export interface ConversionResponse {
@@ -47,8 +58,21 @@ export class MeowdownAPI {
     const url = `${getApiBaseUrl()}${path}`
     
     try {
-      const response = await invoke('http_get', { url })
-      return JSON.parse(response as string) as T
+      let response: string
+      
+      // 优先使用Tauri命令（如果可用）
+      if (tauriInvoke) {
+        response = await tauriInvoke('http_get', { url })
+      } else {
+        // 回退到原生fetch
+        const fetchResponse = await fetch(url)
+        if (!fetchResponse.ok) {
+          throw new Error(`HTTP ${fetchResponse.status}: ${fetchResponse.statusText}`)
+        }
+        response = await fetchResponse.text()
+      }
+      
+      return JSON.parse(response) as T
     } catch (e) {
       console.error('HTTP GET 请求失败:', e)
       throw e
@@ -59,12 +83,29 @@ export class MeowdownAPI {
     const url = `${getApiBaseUrl()}${path}`
     
     try {
-      const response = await invoke('http_post', { 
-        url, 
-        body: JSON.stringify(body) 
-      })
+      let response: string
+      const bodyStr = JSON.stringify(body)
       
-      return JSON.parse(response as string) as T
+      // 优先使用Tauri命令（如果可用）
+      if (tauriInvoke) {
+        response = await tauriInvoke('http_post', { url, body: bodyStr })
+      } else {
+        // 回退到原生fetch
+        const fetchResponse = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: bodyStr
+        })
+        
+        if (!fetchResponse.ok) {
+          throw new Error(`HTTP ${fetchResponse.status}: ${fetchResponse.statusText}`)
+        }
+        response = await fetchResponse.text()
+      }
+      
+      return JSON.parse(response) as T
     } catch (e) {
       console.error('HTTP POST 请求失败:', e)
       throw e
