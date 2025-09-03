@@ -2,15 +2,13 @@
 
 把 Markdown 里的图片一键变身 WebP，还能自动上传到图床！(=^･ω･^=)✧
 
-<<<<<<< HEAD
 ## 🌍 多语言版本 | Multi-language Versions
 - 🇨🇳 [中文](README.md) (当前页面)
 - 🇺🇸 [English](Read.md/README-en.md)
 - 🇪🇸 [Español](Read.md/README-es.md)
 - 🇫🇷 [Français](Read.md/README-fr.md)
 
-![Preview](icons/image/preview.png)
-=======
+
 ![Preview](icons/image/previewStory1.jpg)
 
 ## 🤔 这是什么？
@@ -37,7 +35,7 @@ Meowdown 把控制权交给你！拖动一下滑杆，就能亲眼看着图片�
 现在，你只需要专注于写作，图片随便拖。写完后，把文章交给 Meowdown，按下那个神奇的按钮，它会帮你**搞定后续所有事**。这才是真正的自动化，不是吗？
 
 **简单说：Meowdown 消灭了所有手动处理图片的繁琐步骤，让你专心写出好内容。**
->>>>>>> 5d7b26a3c27f661cd18ead4e4f7bc0dfe92fe74d
+
 
 ---
 
