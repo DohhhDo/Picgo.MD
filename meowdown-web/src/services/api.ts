@@ -119,7 +119,7 @@ export class MeowdownAPI {
 
   // 转换 Markdown
   static async convertMarkdown(request: ConversionRequest): Promise<ConversionResponse> {
-    return await this.httpPost<ConversionResponse>('/convert', request)
+    return await this.httpPost<ConversionResponse>('/api/convert', request)
   }
 
   // 上传文件
@@ -130,16 +130,16 @@ export class MeowdownAPI {
 
   // 测试图床配置
   static async testImageBedConfig(config: Record<string, any>): Promise<{ success: boolean }> {
-    return await this.httpPost<{ success: boolean }>('/image-bed/test', config)
+    return await this.httpPost<{ success: boolean }>('/api/imagebed/test', config)
   }
 
   // 获取图床配置
   static async getImageBedConfig(): Promise<Record<string, any>> {
-    return await this.httpGet<Record<string, any>>('/image-bed/config')
+    return await this.httpGet<Record<string, any>>('/api/imagebed/config')
   }
 
   // 保存图床配置
   static async saveImageBedConfig(config: Record<string, any>): Promise<{ success: boolean }> {
-    return await this.httpPost<{ success: boolean }>('/image-bed/config', config)
+    return await this.httpPost<{ success: boolean }>('/api/imagebed/config', config)
   }
 }

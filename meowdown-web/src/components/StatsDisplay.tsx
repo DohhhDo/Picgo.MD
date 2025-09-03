@@ -13,6 +13,7 @@ import {
   Icon,
 } from '@chakra-ui/react'
 import { FiImage, FiCheckCircle, FiClock } from 'react-icons/fi'
+import { useTranslation } from 'react-i18next'
 
 interface ConversionStats {
   total_images: number
@@ -27,13 +28,15 @@ interface StatsDisplayProps {
   isVisible: boolean
 }
 
-// 格式化时间
-const formatTime = (seconds: number): string => {
-  if (seconds < 1) return `${(seconds * 1000).toFixed(0)}ms`
-  return `${seconds.toFixed(1)}s`
+// 格式化时间（容错 undefined/null）
+const formatTime = (seconds: number | undefined | null): string => {
+  const s = Number(seconds ?? 0)
+  if (s < 1) return `${(s * 1000).toFixed(0)}ms`
+  return `${s.toFixed(1)}s`
 }
 
 export const StatsDisplay: React.FC<StatsDisplayProps> = ({ stats, isVisible }) => {
+  const { t } = useTranslation()
   const bgColor = useColorModeValue('white', 'gray.800')
   const borderColor = useColorModeValue('gray.200', 'gray.700')
 
@@ -41,8 +44,16 @@ export const StatsDisplay: React.FC<StatsDisplayProps> = ({ stats, isVisible }) 
     return null
   }
 
-  const successRate = stats.total_images > 0 
-    ? ((stats.converted_images / stats.total_images) * 100).toFixed(1) 
+  // 兼容不同命名风格并做空值保护
+  const s: any = stats
+  const totalImages = Number(s.total_images ?? s.totalImages ?? 0)
+  const convertedImages = Number(s.converted_images ?? s.convertedImages ?? 0)
+  const failedImages = Number(s.failed_images ?? s.failedImages ?? 0)
+  const skippedImages = Number(s.skipped_images ?? s.skippedImages ?? 0)
+  const timeSec = Number(s.conversion_time ?? s.conversionTime ?? 0)
+
+  const successRate = totalImages > 0
+    ? ((convertedImages / totalImages) * 100).toFixed(1)
     : '0'
 
   return (
@@ -55,7 +66,7 @@ export const StatsDisplay: React.FC<StatsDisplayProps> = ({ stats, isVisible }) 
     >
       <VStack spacing={4} align="stretch">
         <Text fontSize="sm" fontWeight="semibold" color="gray.600">
-          转换统计
+          {t('stats.title')}
         </Text>
         
         <SimpleGrid columns={3} spacing={4}>
@@ -63,21 +74,21 @@ export const StatsDisplay: React.FC<StatsDisplayProps> = ({ stats, isVisible }) 
             <StatLabel>
               <HStack spacing={2}>
                 <Icon as={FiImage} />
-                <Text>总图片数</Text>
+                <Text>{t('stats.total')}</Text>
               </HStack>
             </StatLabel>
-            <StatNumber fontSize="xl">{stats.total_images}</StatNumber>
+            <StatNumber fontSize="xl">{totalImages}</StatNumber>
           </Stat>
 
           <Stat>
             <StatLabel>
               <HStack spacing={2}>
                 <Icon as={FiCheckCircle} />
-                <Text>转换成功</Text>
+                <Text>{t('stats.success')}</Text>
               </HStack>
             </StatLabel>
             <StatNumber fontSize="xl" color="green.500">
-              {stats.converted_images}
+              {convertedImages}
             </StatNumber>
             <StatHelpText>成功率 {successRate}%</StatHelpText>
           </Stat>
@@ -86,31 +97,31 @@ export const StatsDisplay: React.FC<StatsDisplayProps> = ({ stats, isVisible }) 
             <StatLabel>
               <HStack spacing={2}>
                 <Icon as={FiClock} />
-                <Text>处理时间</Text>
+                <Text>{t('stats.time')}</Text>
               </HStack>
             </StatLabel>
             <StatNumber fontSize="xl">
-              {formatTime(stats.conversion_time)}
+              {formatTime(timeSec)}
             </StatNumber>
           </Stat>
         </SimpleGrid>
 
-        {(stats.failed_images > 0 || stats.skipped_images > 0) && (
+        {(failedImages > 0 || skippedImages > 0) && (
           <SimpleGrid columns={2} spacing={4}>
-            {stats.failed_images > 0 && (
+            {failedImages > 0 && (
               <Stat>
-                <StatLabel>失败图片</StatLabel>
+                <StatLabel>{t('stats.failed')}</StatLabel>
                 <StatNumber fontSize="md" color="red.500">
-                  {stats.failed_images}
+                  {failedImages}
                 </StatNumber>
               </Stat>
             )}
             
-            {stats.skipped_images > 0 && (
+            {skippedImages > 0 && (
               <Stat>
-                <StatLabel>跳过图片</StatLabel>
+                <StatLabel>{t('stats.skipped')}</StatLabel>
                 <StatNumber fontSize="md" color="yellow.500">
-                  {stats.skipped_images}
+                  {skippedImages}
                 </StatNumber>
               </Stat>
             )}

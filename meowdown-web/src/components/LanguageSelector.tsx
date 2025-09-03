@@ -5,7 +5,8 @@ import {
   MenuList, 
   MenuItem, 
   HStack, 
-  Text 
+  Text,
+  useColorModeValue
 } from '@chakra-ui/react'
 import { ChevronDownIcon } from '@chakra-ui/icons'
 import { useTranslation } from 'react-i18next'
@@ -26,6 +27,13 @@ export function LanguageSelector() {
     i18n.changeLanguage(languageCode)
   }
 
+  // 深/浅色模式下的下拉样式
+  const listBg = useColorModeValue('white', 'gray.800')
+  const listBorder = useColorModeValue('gray.200', 'gray.700')
+  const hoverBg = useColorModeValue('meowdown.50', 'gray.700')
+  const activeBg = useColorModeValue('meowdown.100', 'meowdown.600')
+  const activeColor = useColorModeValue('inherit', 'white')
+
   return (
     <Menu>
       <MenuButton
@@ -42,13 +50,14 @@ export function LanguageSelector() {
           </Text>
         </HStack>
       </MenuButton>
-      <MenuList minW="120px">
+      <MenuList minW="120px" bg={listBg} borderColor={listBorder}>
         {languages.map((language) => (
           <MenuItem
             key={language.code}
             onClick={() => changeLanguage(language.code)}
-            bg={i18n.language === language.code ? 'meowdown.50' : 'transparent'}
-            _hover={{ bg: 'meowdown.100' }}
+            bg={i18n.language === language.code ? activeBg : 'transparent'}
+            color={i18n.language === language.code ? activeColor : undefined}
+            _hover={{ bg: hoverBg }}
           >
             <HStack spacing={2}>
               <Text>{language.flag}</Text>
@@ -60,3 +69,4 @@ export function LanguageSelector() {
     </Menu>
   )
 }
+

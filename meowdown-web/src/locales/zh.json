@@ -34,6 +34,31 @@
     "converting": "转换中...",
     "progress": "进度"
   },
+  "presets": {
+    "title": "快速预设",
+    "extreme": "极缩",
+    "normal": "常规",
+    "recommended": "推荐",
+    "high": "高品",
+    "lossless": "无损",
+    "desc": {
+      "extreme": "极致压缩，最小体积",
+      "normal": "平衡模式，适合网络传输",
+      "recommended": "推荐设置，质量与体积兼顾",
+      "high": "高质量，接近原图"
+    }
+  },
+  "progress": {
+    "title": "转换进度"
+  },
+  "stats": {
+    "title": "转换统计",
+    "total": "总图片数",
+    "success": "转换成功",
+    "time": "处理时间",
+    "failed": "失败图片",
+    "skipped": "跳过图片"
+  },
   "messages": {
     "fileLoaded": "文件已加载",
     "fileLoadedDesc": "成功加载 {{filename}}",
@@ -49,7 +74,7 @@
     "error": "错误"
   },
   "footer": {
-    "description": "现代化 Web 版本 - 基于 React + Chakra UI"
+    "description": "基于 ChakraUI · 开发者：间窗 Jcblog.com.cn · 开源软件永久免费"
   },
   "imageBed": {
     "title": "图床设置",
@@ -62,3 +87,4 @@
     "test": "测试上传"
   }
 }
+

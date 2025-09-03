@@ -34,6 +34,31 @@
     "converting": "Conversion en cours...",
     "progress": "Progrès"
   },
+  "presets": {
+    "title": "Préréglages Rapides",
+    "extreme": "Extrême",
+    "normal": "Normal",
+    "recommended": "Opti",
+    "high": "Haute",
+    "lossless": "Sans perte",
+    "desc": {
+      "extreme": "Compression extrême, taille minimale",
+      "normal": "Mode équilibré, adapté au web",
+      "recommended": "Réglage recommandé, équilibre qualité/taille",
+      "high": "Haute qualité, proche de l'original"
+    }
+  },
+  "progress": {
+    "title": "Progression de la Conversion"
+  },
+  "stats": {
+    "title": "Statistiques de Conversion",
+    "total": "Nombre Total d'Images",
+    "success": "Converties",
+    "time": "Temps",
+    "failed": "Échouées",
+    "skipped": "Ignorées"
+  },
   "messages": {
     "fileLoaded": "Fichier Chargé",
     "fileLoadedDesc": "{{filename}} chargé avec succès",
@@ -49,7 +74,7 @@
     "error": "Erreur"
   },
   "footer": {
-    "description": "Version Web Moderne - Construite avec React + Chakra UI"
+    "description": "Construit avec ChakraUI · Développeur : Jcblog.com.cn · Gratuit & Open Source"
   },
   "imageBed": {
     "title": "Paramètres d'Hébergement d'Images",
@@ -62,3 +87,4 @@
     "test": "Tester le Téléchargement"
   }
 }
+

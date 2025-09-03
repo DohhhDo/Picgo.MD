@@ -15,7 +15,7 @@ import {
   HStack,
   Divider,
 } from '@chakra-ui/react'
-import type { QualityPreset } from '../types'
+import { useTranslation } from 'react-i18next'
 
 interface ControlPanelProps {
   quality: number
@@ -27,12 +27,12 @@ interface ControlPanelProps {
   onUpload?: () => void
 }
 
-const qualityPresets: QualityPreset[] = [
-  { name: '极缩', value: 30, description: '最小体积' },
-  { name: '常规', value: 50, description: '平衡模式' },
-  { name: '推荐', value: 73, description: '推荐设置' },
-  { name: '高品', value: 90, description: '高质量' },
-  { name: '无损', value: 100, description: '原图质量' },
+const qualityPresets: Array<{ key: string; value: number }> = [
+  { key: 'extreme', value: 30 },
+  { key: 'normal', value: 50 },
+  { key: 'recommended', value: 73 },
+  { key: 'high', value: 90 },
+  { key: 'lossless', value: 100 },
 ]
 
 export const ControlPanel: React.FC<ControlPanelProps> = ({
@@ -44,6 +44,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
   onConvert,
   onUpload,
 }) => {
+  const { t } = useTranslation()
   const bgColor = useColorModeValue('white', 'gray.800')
   const borderColor = useColorModeValue('gray.200', 'gray.600')
   const dividerColor = useColorModeValue('gray.200', 'gray.700')
@@ -72,11 +73,11 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
           h="48px"
           colorScheme="meowdown"
           isLoading={isConverting}
-          loadingText="转换中..."
+          loadingText={t('control.converting')}
           onClick={onConvert}
           disabled={isConverting}
         >
-          {isConverting ? '转换中...' : '转换'}
+          {isConverting ? t('control.converting') : t('control.convert')}
         </Button>
 
         <Divider borderColor={dividerColor} opacity={dividerOpacity} />
@@ -85,7 +86,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
         <VStack spacing={4} align="stretch">
           <HStack justify="space-between" align="center">
             <Text fontSize="md" fontWeight="semibold">
-              图片质量
+              {t('control.quality')}
             </Text>
             <Badge
               colorScheme="meowdown"
@@ -119,12 +120,12 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
           {/* 质量描述 */}
           <Text fontSize="sm" color="gray.500" textAlign="center">
             {quality <= 30
-              ? '极致压缩，最小体积'
+              ? t('presets.desc.extreme')
               : quality <= 60
-              ? '平衡模式，适合网络传输'
+              ? t('presets.desc.normal')
               : quality <= 80
-              ? '推荐设置，质量与体积兼顾'
-              : '高质量，接近原图'}
+              ? t('presets.desc.recommended')
+              : t('presets.desc.high')}
           </Text>
         </VStack>
 
@@ -133,12 +134,12 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
         {/* 预设网格 */}
         <VStack spacing={3} align="stretch">
           <Text fontSize="md" fontWeight="semibold">
-            快速预设
+            {t('presets.title')}
           </Text>
           <SimpleGrid columns={3} spacing={2}>
             {qualityPresets.map((preset) => (
               <Button
-                key={preset.name}
+                key={preset.key}
                 size="sm"
                 variant={quality === preset.value ? 'solid' : 'outline'}
                 colorScheme={quality === preset.value ? 'meowdown' : 'gray'}
@@ -146,7 +147,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                 fontSize="xs"
                 h="32px"
               >
-                {preset.name}
+                {t(`presets.${preset.key}`)}
               </Button>
             ))}
           </SimpleGrid>
@@ -158,7 +159,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
         <VStack spacing={3} align="stretch">
           <HStack justify="space-between" align="center">
             <Text fontSize="md" fontWeight="semibold">
-              转换进度
+              {t('progress.title')}
             </Text>
             <Text fontSize="sm" color="gray.500">
               {progress}%
@@ -189,7 +190,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
               disabled={isConverting || progress === 0}
               size="md"
             >
-              上传到图床
+              {t('imageBed.upload')}
             </Button>
           </>
         )}

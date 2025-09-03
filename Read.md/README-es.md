@@ -189,3 +189,4 @@ MIT. Bienvenido desarrollo secundario y creaciones de fans (por favor mantén la
 - 📦 ¿Quieres empaquetar tú mismo? Ver [BUILD_GUIDE.md](BUILD_GUIDE.md)
 - 🎨 ¿Quieres entender iconos? Ver [ICON_MANIFEST.md](ICON_MANIFEST.md)
 - 📁 ¿Quieres entender estructura? Ver [meum-README.md](meum-README.md)
+
