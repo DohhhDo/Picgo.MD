@@ -5,31 +5,31 @@ Meowdown Backend API Server
 基于 FastAPI 的现代化后端服务
 """
 
-import sys
-import os
 import asyncio
+import json
+import os
+import shutil
+import sys
+import tempfile
 import uuid
 from pathlib import Path
 from typing import Dict, List, Optional
-import json
-import tempfile
-import shutil
 
+import requests
+import uvicorn
 from fastapi import (
     FastAPI,
+    File,
     HTTPException,
+    UploadFile,
     WebSocket,
     WebSocketDisconnect,
-    UploadFile,
-    File,
 )
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
 from starlette.middleware.base import BaseHTTPMiddleware
-import uvicorn
-import requests
 
 try:
     import oss2 as _oss2
@@ -75,10 +75,10 @@ S3Adapter = None
 try:
     # 首先尝试常规包名（如果你未来把目录重命名为 md_converter_gui 可直接生效）
     from md_converter_gui.core.image_converter import MarkdownImageProcessor as _MIP
-    from md_converter_gui.uploader.manager import UploadManager as _UM
-    from md_converter_gui.uploader.github_adapter import GitHubAdapter as _GH
     from md_converter_gui.uploader.ali_oss_adapter import AliOssAdapter as _ALI
     from md_converter_gui.uploader.cos_adapter import CosAdapter as _COS
+    from md_converter_gui.uploader.github_adapter import GitHubAdapter as _GH
+    from md_converter_gui.uploader.manager import UploadManager as _UM
     from md_converter_gui.uploader.qiniu_adapter import QiniuAdapter as _QNU
     from md_converter_gui.uploader.s3_adapter import S3Adapter as _S3
 
@@ -171,10 +171,11 @@ except Exception as e:
 # 最后兜底：若仍未获得 MarkdownImageProcessor，则提供一个最小可用实现
 if MarkdownImageProcessor is None:
     print("Warning: using built-in fallback MarkdownImageProcessor")
-    from PIL import Image
-    import re
     import io
+    import re
+
     import requests as _req
+    from PIL import Image
 
     class _FallbackProcessor:
         def __init__(self, webp_quality: int = 80):
