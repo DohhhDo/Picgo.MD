@@ -90,7 +90,11 @@ try:
     QiniuAdapter = _QNU
     S3Adapter = _S3
 except Exception as e:
-    print(f"Warning: Could not import conversion modules by package name: {e}")
+    # 静默处理（仅在调试模式下输出），避免打包运行时产生噪声
+    if os.getenv("MD_DEBUG") in ("1", "true", "True"):
+        print(
+            f"Warning: Could not import conversion modules by package name: {e}"
+        )
     # 回退：使用文件路径动态加载
     import importlib.util as _importlib_util
 
@@ -107,7 +111,8 @@ except Exception as e:
 
     gui_root = project_root / "md-converter-gui"
     img_conv_path = gui_root / "core" / "image_converter.py"
-    uploader_mgr_path = gui_root / "uploader" / "manager.py"
+    # 注意：GUI 的 UploadManager 使用相对导入，仅能在打包为 package 时正常工作。
+    # 为避免运行时出现相对导入报错，这里不再尝试动态加载 manager.py。
     github_adapter_path = gui_root / "uploader" / "github_adapter.py"
     aliyun_adapter_path = gui_root / "uploader" / "ali_oss_adapter.py"
     cos_adapter_path = gui_root / "uploader" / "cos_adapter.py"
@@ -119,11 +124,7 @@ except Exception as e:
         if img_conv_path.exists()
         else None
     )
-    uploader_mgr_mod = (
-        _load_module_from_path("uploader_manager", uploader_mgr_path)
-        if uploader_mgr_path.exists()
-        else None
-    )
+    uploader_mgr_mod = None
     github_adapter_mod = (
         _load_module_from_path("github_adapter", github_adapter_path)
         if github_adapter_path.exists()
@@ -153,8 +154,7 @@ except Exception as e:
     try:
         if img_conv_mod and hasattr(img_conv_mod, "MarkdownImageProcessor"):
             MarkdownImageProcessor = getattr(img_conv_mod, "MarkdownImageProcessor")
-        if uploader_mgr_mod and hasattr(uploader_mgr_mod, "UploadManager"):
-            UploadManager = getattr(uploader_mgr_mod, "UploadManager")
+        # 不再设置 UploadManager，统一通过各云适配器直接上传
         if github_adapter_mod and hasattr(github_adapter_mod, "GitHubAdapter"):
             GitHubAdapter = getattr(github_adapter_mod, "GitHubAdapter")
         if aliyun_adapter_mod and hasattr(aliyun_adapter_mod, "AliOssAdapter"):
@@ -464,7 +464,10 @@ async def health_check():
     return {
         "status": "healthy",
         "conversion_available": MarkdownImageProcessor is not None,
-        "upload_available": UploadManager is not None,
+        # 以是否加载到任一图床适配器来表示“上传可用”，避免因 GUI Manager 导入失败而误报不可用
+        "upload_available": any(
+            [GitHubAdapter, AliOssAdapter, CosAdapter, QiniuAdapter, S3Adapter]
+        ),
     }
 
 
@@ -1337,10 +1340,11 @@ async def test_imagebed_config(config: ImageBedConfig):
 if __name__ == "__main__":
     # 在打包环境（PyInstaller）下禁用热重载，避免 watchfiles 反复重启
     is_frozen = bool(getattr(sys, "frozen", False))
+    # 默认关闭 reload，避免 uvicorn 警告与开发/打包环境不一致导致的异常
     reload_flag = (
         False
         if is_frozen
-        else bool(os.getenv("UVICORN_RELOAD", "1") not in ("0", "false", "False"))
+        else bool(os.getenv("UVICORN_RELOAD", "0") not in ("0", "false", "False"))
     )
     uvicorn.run(
         app,
