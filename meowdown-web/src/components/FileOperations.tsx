@@ -43,6 +43,10 @@ export const FileOperations: React.FC<FileOperationsProps> = ({
         reader.onload = (e) => {
           const content = e.target?.result as string
           onMarkdownChange(content)
+            ; (window as any).__MEOWDOWN_OPEN_FILE__ = {
+              path: (file as any).path || file.name,
+              name: file.name,
+            }
           toast({
             title: '文件已加载',
             description: `成功加载 ${file.name}`,
@@ -68,7 +72,22 @@ export const FileOperations: React.FC<FileOperationsProps> = ({
   )
 
   // 处理文件保存
-  const handleFileSave = useCallback(() => {
+  const handleFileSave = useCallback(async () => {
+    // 优先：Tauri 桌面环境下直接写回源文件
+    const openFile = (window as any).__MEOWDOWN_OPEN_FILE__
+    // 方案A：优先通过 Tauri invoke 调用原生保存（绕过 fs 包）
+    const tauri = (window as any).__TAURI__
+    if (tauri?.invoke && openFile?.path) {
+      try {
+        await tauri.invoke('save_md_file', { path: openFile.path, content: markdown })
+        toast({ title: '已保存', description: `写入 ${openFile.name}`, status: 'success', duration: 1600 })
+        return
+      } catch {
+        // 回退到 FS 或下载
+      }
+    }
+    // 方案B（已移除 @tauri-apps/api 直接依赖，避免构建报错）
+    // 回退：Web 环境/失败时使用下载
     const blob = new Blob([markdown], { type: 'text/markdown' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -78,13 +97,7 @@ export const FileOperations: React.FC<FileOperationsProps> = ({
     a.click()
     document.body.removeChild(a)
     URL.revokeObjectURL(url)
-    
-    toast({
-      title: '文件已保存',
-      description: 'Markdown 文件已下载到本地',
-      status: 'success',
-      duration: 2000,
-    })
+    toast({ title: '已保存', description: 'Markdown 已下载', status: 'success', duration: 1600 })
   }, [markdown, toast])
 
   // 处理拖拽事件
@@ -112,7 +125,7 @@ export const FileOperations: React.FC<FileOperationsProps> = ({
       e.preventDefault()
       e.stopPropagation()
       setDragActive(false)
-      
+
       if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
         const file = e.dataTransfer.files[0]
         if (file.name.endsWith('.md')) {
@@ -190,7 +203,7 @@ export const FileOperations: React.FC<FileOperationsProps> = ({
           >
             打开文件
           </Button>
-          
+
           <Button
             leftIcon={<FiDownload />}
             size="sm"

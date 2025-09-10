@@ -8,6 +8,11 @@ fn greet(name: &str) -> String {
 }
 
 #[tauri::command]
+fn save_md_file(path: String, content: String) -> Result<(), String> {
+    std::fs::write(&path, content).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
 async fn http_get(url: String) -> Result<String, String> {
     println!("Rust HTTP GET request to: {}", url);
     
@@ -79,7 +84,7 @@ pub fn run() {
             }
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![greet, http_get, http_post])
+        .invoke_handler(tauri::generate_handler![greet, save_md_file, http_get, http_post])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
