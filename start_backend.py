@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Meowdown Backend Startup Script
+Picgo.MD Backend Startup Script
 启动 FastAPI 后端服务的便捷脚本
 """
 
@@ -12,17 +12,17 @@ from pathlib import Path
 
 
 def main():
-    print("🐾 启动 Meowdown 后端服务...")
+    print("🐾 启动 Picgo.MD 后端服务...")
 
     # 检查后端目录
-    backend_dir = Path("meowdown-backend")
+    backend_dir = Path("picgomd-backend")
     if not backend_dir.exists():
-        print("❌ 错误: meowdown-backend 目录不存在")
+        print("❌ 错误: picgomd-backend 目录不存在")
         return 1
 
     main_py = backend_dir / "main.py"
     if not main_py.exists():
-        print("❌ 错误: meowdown-backend/main.py 不存在")
+        print("❌ 错误: picgomd-backend/main.py 不存在")
         return 1
 
     try:

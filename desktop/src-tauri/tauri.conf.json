@@ -1,13 +1,13 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Meowdown",
+  "productName": "Picgo.MD",
   "version": "0.1.0",
-  "identifier": "com.meowdown.desktop",
+  "identifier": "com.picgomd.desktop",
   "build": {
-    "beforeDevCommand": "npm run dev --prefix ../meowdown-web -- --host 127.0.0.1 --port 3000",
+    "beforeDevCommand": "npm run dev --prefix ../picgomd-web -- --host 127.0.0.1 --port 3000",
     "devUrl": "http://127.0.0.1:3000",
-    "beforeBuildCommand": "npm run build --prefix ../meowdown-web",
-    "frontendDist": "../../meowdown-web/dist"
+    "beforeBuildCommand": "npm run build --prefix ../picgomd-web",
+    "frontendDist": "../../picgomd-web/dist"
   },
   "app": {
     "withGlobalTauri": true,
@@ -16,7 +16,7 @@
     },
     "windows": [
       {
-        "title": "Meowdown",
+        "title": "Picgo.MD",
         "width": 1200,
         "height": 800,
         "devtools": true
@@ -27,11 +27,11 @@
     "active": true,
     "targets": "all",
     "externalBin": [
-      "./bin/meowdown-backend"
+      "./bin/picgomd-backend"
     ],
     "icon": [
       "../../icons/app_icon.ico",
-      "../../meowdown-web/public/maoer.png",
+      "../../picgomd-web/public/maoer.png",
       "../../icons/windows/icon_256x256.png",
       "../../icons/windows/icon_128x128.png",
       "../../icons/windows/icon_64x64.png",

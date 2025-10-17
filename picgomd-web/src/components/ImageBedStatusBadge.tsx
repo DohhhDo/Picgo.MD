@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { Badge, HStack, Text, Tooltip } from '@chakra-ui/react'
 import { CheckCircleIcon, WarningIcon } from '@chakra-ui/icons'
-import { MeowdownAPI, type ImageBedConfig } from '../services/api'
+import { PicgoMdAPI, type ImageBedConfig } from '../services/api'
 
 export const ImageBedStatusBadge: React.FC = () => {
   const [config, setConfig] = useState<ImageBedConfig | null>(null)
@@ -12,7 +12,7 @@ export const ImageBedStatusBadge: React.FC = () => {
     const load = async () => {
       try {
         setLoading(true)
-        const cfg = await MeowdownAPI.getImageBedConfig()
+        const cfg = await PicgoMdAPI.getImageBedConfig()
         if (mounted) setConfig(cfg as ImageBedConfig)
       } catch {
         if (mounted) setConfig(null)

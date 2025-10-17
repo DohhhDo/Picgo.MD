@@ -1,17 +1,17 @@
-# 🐾 Meowdown 全栈开发环境设置指南
+# 🐾 Picgo.MD 全栈开发环境设置指南
 
 ## 🏗️ 项目架构
 
 ```
-Meowdown/
-├── meowdown-web/          # React 前端 (端口: 5173)
+Picgo.MD/
+├── picgomd-web/          # React 前端 (端口: 5173)
 │   ├── src/
 │   │   ├── components/    # UI 组件
 │   │   ├── hooks/         # React Hooks
 │   │   ├── services/      # API 客户端
 │   │   └── theme/         # Chakra UI 主题
 │   └── package.json
-├── meowdown-backend/      # Python 后端 (端口: 8000)
+├── picgomd-backend/      # Python 后端 (端口: 8000)
 │   ├── main.py           # FastAPI 服务器
 │   └── requirements.txt
 ├── md-converter-gui/      # 原 PyQt 应用 (复用核心逻辑)
@@ -29,7 +29,7 @@ Meowdown/
 python start_backend.py
 
 # 方式二：手动启动
-cd meowdown-backend
+cd picgomd-backend
 python main.py
 ```
 
@@ -38,7 +38,7 @@ python main.py
 ### 2. 启动前端服务
 
 ```bash
-cd meowdown-web
+cd picgomd-web
 npm run dev
 ```
 

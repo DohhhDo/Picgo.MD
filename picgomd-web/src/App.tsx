@@ -1,11 +1,11 @@
-import { 
-  Box, 
-  Flex, 
-  Button, 
-  VStack, 
+import {
+  Box,
+  Flex,
+  Button,
+  VStack,
   HStack,
   Text,
-  useToast, 
+  useToast,
   useColorMode,
   useColorModeValue,
   Badge,
@@ -19,7 +19,7 @@ import { MoonIcon, SunIcon, SettingsIcon, CheckCircleIcon, WarningIcon } from '@
 import { useState, useEffect, useRef } from 'react'
 import { useApiState } from './hooks/useApiState'
 import { MarkdownEditor, ControlPanel, FileOperations, StatsDisplay, ImageBedSettingsModal, LanguageSelector } from './components'
-import { MeowdownAPI } from './services/api'
+import { PicgoMdAPI } from './services/api'
 
 import { ImageBedStatusBadge } from './components'
 import { FiUpload, FiDownload } from 'react-icons/fi'
@@ -29,14 +29,14 @@ function App() {
   const toast = useToast()
   const { colorMode, toggleColorMode } = useColorMode()
   const { t } = useTranslation()
-  
+
   // 应用状态
   const [markdown, setMarkdown] = useState('')
   const [quality, setQuality] = useState(73)
   const [hasChanges, setHasChanges] = useState(false)
   const [originalMarkdown, setOriginalMarkdown] = useState('')
   const [isImageBedOpen, setIsImageBedOpen] = useState(false)
-  
+
   // API 状态
   const { state: apiState, checkConnection, startConversion } = useApiState()
 
@@ -130,7 +130,7 @@ function App() {
       let imageBed: any = null
       try {
         imageBed = await MeowdownAPI.getImageBedConfig()
-      } catch {}
+      } catch { }
 
       const response = await startConversion({
         markdown,
@@ -171,7 +171,7 @@ function App() {
         duration: 5000,
         isClosable: true,
       })
-      
+
       // 更新 markdown 内容
       if (apiState.lastResult.new_markdown) {
         setMarkdown(apiState.lastResult.new_markdown)
@@ -271,7 +271,7 @@ function App() {
 
             {/* 图床状态 */}
             <ImageBedStatusBadge />
-            
+
             {/* 转换状态 */}
             <Badge
               colorScheme={apiState.isConverting ? 'orange' : apiState.progress >= 100 ? 'green' : apiState.progress > 0 ? 'blue' : 'gray'}
@@ -284,7 +284,7 @@ function App() {
                 ? (apiState.progress >= 90 && apiState.progress < 100 ? '上传中' : '转换中')
                 : (apiState.progress >= 100 ? '已完成' : apiState.progress > 0 ? '处理中' : '就绪')}
             </Badge>
-            
+
             <Text fontSize="sm" color="gray.600">
               质量: {quality}%
             </Text>
@@ -342,7 +342,7 @@ function App() {
             hasChanges={hasChanges}
             showButtons={false}
           />
-          
+
           {/* Markdown 编辑器 */}
           <Box flex={1}>
             <MarkdownEditor

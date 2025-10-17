@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Meowdown Backend API Server
+Picgo.MD Backend API Server
 基于 FastAPI 的现代化后端服务
 """
 
@@ -48,9 +48,9 @@ def _detect_base_dirs():
         except Exception:
             local_appdata = None
         if local_appdata:
-            writable = Path(local_appdata) / "Meowdown"
+            writable = Path(local_appdata) / "PicgoMD"
         else:
-            writable = Path.home() / ".meowdown"
+            writable = Path.home() / ".picgomd"
         writable.mkdir(parents=True, exist_ok=True)
         return meipass, writable
     # 源码运行：以仓库根为基准
@@ -293,7 +293,7 @@ if MarkdownImageProcessor is None:
     MarkdownImageProcessor = _FallbackProcessor
 # 创建 FastAPI 应用
 app = FastAPI(
-    title="Meowdown API", description="现代化 Markdown 图片转换服务", version="1.0.0"
+    title="Picgo.MD API", description="现代化 Markdown 图片转换服务", version="1.0.0"
 )
 
 # 配置 CORS
@@ -456,7 +456,7 @@ async def websocket_endpoint(websocket: WebSocket, task_id: str):
 # API 端点
 @app.get("/")
 async def root():
-    return {"message": "Meowdown Backend API", "version": "1.0.0", "status": "running"}
+    return {"message": "Picgo.MD Backend API", "version": "1.0.0", "status": "running"}
 
 
 @app.get("/health")
@@ -483,7 +483,7 @@ async def convert_markdown(request: ConversionRequest):
     task_manager.create_task(task_id)
 
     try:
-        # 持久化输出目录：C:\Git\Meowdown\outputs\images（或使用请求中的相对目录名）
+        # 持久化输出目录：C:\Git\Picgo.MD\outputs\images（或使用请求中的相对目录名）
         outputs_root = OUTPUTS_ROOT
         # 允许前端传入相对目录名（默认 images）
         req_dir = request.output_dir or "images"

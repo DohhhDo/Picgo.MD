@@ -1,4 +1,4 @@
-# 🐾 Meowdown Web - 现代化 Markdown 图片转换器
+# 🐾 Picgo.MD Web - 现代化 Markdown 图片转换器
 
 基于 React + Chakra UI 的现代化 Web 版本，提供统一的设计系统和优秀的用户体验。
 

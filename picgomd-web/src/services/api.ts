@@ -53,13 +53,13 @@ export interface WebSocketManager {
 }
 
 // API 服务类
-export class MeowdownAPI {
+export class PicgoMdAPI {
   private static async httpGet<T>(path: string): Promise<T> {
     const url = `${getApiBaseUrl()}${path}`
-    
+
     try {
       let response: string
-      
+
       // 优先使用Tauri命令（如果可用）
       if (tauriInvoke) {
         response = await tauriInvoke('http_get', { url })
@@ -71,7 +71,7 @@ export class MeowdownAPI {
         }
         response = await fetchResponse.text()
       }
-      
+
       return JSON.parse(response) as T
     } catch (e) {
       console.error('HTTP GET 请求失败:', e)
@@ -81,11 +81,11 @@ export class MeowdownAPI {
 
   private static async httpPost<T>(path: string, body: any): Promise<T> {
     const url = `${getApiBaseUrl()}${path}`
-    
+
     try {
       let response: string
       const bodyStr = JSON.stringify(body)
-      
+
       // 优先使用Tauri命令（如果可用）
       if (tauriInvoke) {
         response = await tauriInvoke('http_post', { url, body: bodyStr })
@@ -98,13 +98,13 @@ export class MeowdownAPI {
           },
           body: bodyStr
         })
-        
+
         if (!fetchResponse.ok) {
           throw new Error(`HTTP ${fetchResponse.status}: ${fetchResponse.statusText}`)
         }
         response = await fetchResponse.text()
       }
-      
+
       return JSON.parse(response) as T
     } catch (e) {
       console.error('HTTP POST 请求失败:', e)

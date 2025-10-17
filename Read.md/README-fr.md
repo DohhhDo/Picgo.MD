@@ -1,4 +1,4 @@
-# <img src="../meowdown-web/public/maoer.png" width="39" height="39" alt="Meowdown Logo" style="vertical-align: middle;">   Meowdown · MdImgConverter
+# <img src="../picgomd-web/public/maoer.png" width="39" height="39" alt="Picgo.MD Logo" style="vertical-align: middle;">   Picgo.MD · MdImgConverter
 
 Convertissez les images Markdown au format WebP et téléchargez-les vers des services d'hébergement d'images en un clic ! (=^･ω･^=)✧
 
@@ -25,20 +25,20 @@ Convertissez les images Markdown au format WebP et téléchargez-les vers des se
 
 ### 🖥️ Application Bureau (Recommandée)
 - Allez à la page Releases du dépôt et téléchargez la dernière version bureau :
-  - 📦 **Installateur MSI** : `Meowdown_0.1.0_x64_en-US.msi` - Installateur Windows standard
-  - 🚀 **Version Portable** : `Meowdown_0.1.0_x64-setup.exe` - Exécute directement sans installation
+  - 📦 **Installateur MSI** : `Picgo.MD_0.1.0_x64_en-US.msi` - Installateur Windows standard
+  - 🚀 **Version Portable** : `Picgo.MD_0.1.0_x64-setup.exe` - Exécute directement sans installation
 - Si bloqué par SmartScreen lors de la première exécution, cliquez sur "Plus d'informations" → "Exécuter quand même"
 - Construit avec Tauri, taille compacte et excellentes performances ! ✨
 
 ### 🌐 Application Web
 - Expérience en ligne : Visitez la version Web déployée
-- Nécessite service backend : `python meowdown-backend/main.py`
+- Nécessite service backend : `python picgomd-backend/main.py`
 - Adapté pour déploiement serveur ou développement local
 
 ### 👨‍💻 Version Développeur
 - Voulez exécuter depuis le code source ? Voir `Read.md/coder-README.md`
 - Développement bureau : `cd desktop && npm run tauri dev`
-- Développement web : `cd meowdown-web && npm run dev`
+- Développement web : `cd picgomd-web && npm run dev`
 
 ---
 
@@ -52,7 +52,7 @@ Convertissez les images Markdown au format WebP et téléchargez-les vers des se
 5. 💾 **Sauvegarder Résultats** : Sauvegardez le nouveau fichier Markdown après conversion
 
 ### 🌐 Utilisation Web
-1. 🚀 Démarrer backend : `python meowdown-backend/main.py`
+1. 🚀 Démarrer backend : `python picgomd-backend/main.py`
 2. 🌐 Ouvrir interface Web (habituellement `http://localhost:8000`)
 3. 📝 Saisissez contenu Markdown dans l'éditeur gauche
 4. 🎛️ Ajustez paramètres à droite et cliquez convertir

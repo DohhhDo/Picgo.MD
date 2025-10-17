@@ -18,7 +18,7 @@ import {
   useToast,
 } from '@chakra-ui/react'
 import type { ImageBedConfig } from '../services/api'
-import { MeowdownAPI } from '../services/api'
+import { PicgoMdAPI } from '../services/api'
 
 interface Props {
   isOpen: boolean
@@ -41,7 +41,7 @@ export const ImageBedSettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
   useEffect(() => {
     if (!isOpen) return
     setLoading(true)
-    MeowdownAPI.getImageBedConfig()
+    PicgoMdAPI.getImageBedConfig()
       .then((data) => {
         if (data) setForm(data as ImageBedConfig)
       })
@@ -54,11 +54,11 @@ export const ImageBedSettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
   const handleSave = async () => {
     try {
       setLoading(true)
-      await MeowdownAPI.saveImageBedConfig(form)
+      await PicgoMdAPI.saveImageBedConfig(form)
       toast({ title: '已保存图床配置', status: 'success', duration: 1200 })
       // 保存后自动测试
       try {
-        const res = await MeowdownAPI.testImageBedConfig(form)
+        const res = await PicgoMdAPI.testImageBedConfig(form)
         toast({ title: '图床测试', description: res.success ? '测试成功' : '测试失败', status: res.success ? 'success' : 'error', duration: 3000 })
         // 让右上角状态徽标沿用“已连接”样式：成功则短暂提示
         if (res.success) {

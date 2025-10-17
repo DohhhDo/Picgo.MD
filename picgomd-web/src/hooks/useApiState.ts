@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react'
-import { MeowdownAPI } from '../services/api'
+import { PicgoMdAPI } from '../services/api'
 import type { ConversionRequest, ConversionResponse } from '../services/api'
 
 interface ApiState {
@@ -27,7 +27,7 @@ export const useApiState = () => {
   // 检查后端连接状态
   const checkConnection = useCallback(async () => {
     try {
-      await MeowdownAPI.healthCheck()
+      await PicgoMdAPI.healthCheck()
       setState(prev => ({
         ...prev,
         isConnected: true,
@@ -57,7 +57,7 @@ export const useApiState = () => {
 
     try {
       // 发送转换请求（后端会在完成后才返回，因此直接以返回结果为准更新状态）
-      const response = await MeowdownAPI.convertMarkdown(request)
+      const response = await PicgoMdAPI.convertMarkdown(request)
 
       if (response.success) {
         setState(prev => ({
@@ -91,10 +91,10 @@ export const useApiState = () => {
   // 组件挂载时检查连接
   useEffect(() => {
     checkConnection()
-    
+
     // 定期检查连接状态
     const interval = setInterval(checkConnection, 10000)
-    
+
     return () => {
       clearInterval(interval)
     }

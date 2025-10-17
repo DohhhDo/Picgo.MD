@@ -1,6 +1,6 @@
 {
   "app": {
-    "title": "Meowdown",
+    "title": "Picgo.MD",
     "subtitle": "Convertidor de Imágenes Markdown",
     "description": "¡Convierte imágenes de Markdown a formato WebP y súbelas a servicios de alojamiento de imágenes con un clic!"
   },
@@ -22,7 +22,7 @@
   },
   "alerts": {
     "backendDisconnected": "¡Servicio backend no conectado!",
-    "backendDisconnectedDesc": "Por favor inicia el servicio backend (python meowdown-backend/main.py) para usar las funciones de conversión",
+    "backendDisconnectedDesc": "Por favor inicia el servicio backend (python picgomd-backend/main.py) para usar las funciones de conversión",
     "reconnect": "Reconectar"
   },
   "editor": {
@@ -87,4 +87,3 @@
     "test": "Probar Subida"
   }
 }
-

@@ -1,4 +1,4 @@
-# <img src="../meowdown-web/public/maoer.png" width="39" height="39" alt="Meowdown Logo" style="vertical-align: middle;">   Meowdown · MdImgConverter
+# <img src="../picgomd-web/public/maoer.png" width="39" height="39" alt="Picgo.MD Logo" style="vertical-align: middle;">   Picgo.MD · MdImgConverter
 
 ¡Convierte imágenes de Markdown a formato WebP y súbelas a servicios de alojamiento de imágenes con un clic! (=^･ω･^=)✧
 
@@ -25,20 +25,20 @@
 
 ### 🖥️ Aplicación de Escritorio (Recomendada)
 - Ve a la página de Releases del repositorio y descarga la última versión de escritorio:
-  - 📦 **Instalador MSI**: `Meowdown_0.1.0_x64_en-US.msi` - Instalador estándar de Windows
-  - 🚀 **Versión Portable**: `Meowdown_0.1.0_x64-setup.exe` - Ejecuta directamente sin instalación
+  - 📦 **Instalador MSI**: `Picgo.MD_0.1.0_x64_en-US.msi` - Instalador estándar de Windows
+  - 🚀 **Versión Portable**: `Picgo.MD_0.1.0_x64-setup.exe` - Ejecuta directamente sin instalación
 - Si es bloqueado por SmartScreen en la primera ejecución, haz clic en "Más información" → "Ejecutar de todas formas"
 - ¡Construido con Tauri, tamaño compacto y excelente rendimiento! ✨
 
 ### 🌐 Aplicación Web
 - Experiencia en línea: Visita la versión Web desplegada
-- Requiere servicio backend: `python meowdown-backend/main.py`
+- Requiere servicio backend: `python picgomd-backend/main.py`
 - Adecuado para despliegue en servidor o desarrollo local
 
 ### 👨‍💻 Versión de Desarrollador
 - ¿Quieres ejecutar desde el código fuente? Ver `Read.md/coder-README.md`
 - Desarrollo de escritorio: `cd desktop && npm run tauri dev`
-- Desarrollo web: `cd meowdown-web && npm run dev`
+- Desarrollo web: `cd picgomd-web && npm run dev`
 
 ---
 
@@ -52,7 +52,7 @@
 5. 💾 **Guardar Resultados**: Guarda el nuevo archivo Markdown después de la conversión
 
 ### 🌐 Uso Web
-1. 🚀 Iniciar backend: `python meowdown-backend/main.py`
+1. 🚀 Iniciar backend: `python picgomd-backend/main.py`
 2. 🌐 Abrir interfaz Web (usualmente `http://localhost:8000`)
 3. 📝 Ingresa contenido Markdown en el editor izquierdo
 4. 🎛️ Ajusta parámetros en la derecha y haz clic en convertir

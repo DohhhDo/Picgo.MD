@@ -1,4 +1,4 @@
-# <img src="../meowdown-web/public/maoer.png" width="39" height="39" alt="Meowdown Logo" style="vertical-align: middle;">   Meowdown · MdImgConverter
+# <img src="../picgomd-web/public/maoer.png" width="39" height="39" alt="Picgo.MD Logo" style="vertical-align: middle;">   Picgo.MD · MdImgConverter
 
 Convert Markdown images to WebP format and upload to image hosting services with one click! (=^･ω･^=)✧
 
@@ -25,20 +25,20 @@ Convert Markdown images to WebP format and upload to image hosting services with
 
 ### 🖥️ Desktop Application (Recommended)
 - Go to the repository's Releases page and download the latest desktop version:
-  - 📦 **MSI Installer**: `Meowdown_0.1.0_x64_en-US.msi` - Standard Windows installer
-  - 🚀 **Portable Version**: `Meowdown_0.1.0_x64-setup.exe` - Run directly without installation
+  - 📦 **MSI Installer**: `Picgo.MD_0.1.0_x64_en-US.msi` - Standard Windows installer
+  - 🚀 **Portable Version**: `Picgo.MD_0.1.0_x64-setup.exe` - Run directly without installation
 - If blocked by SmartScreen on first run, click "More info" → "Run anyway"
 - Built with Tauri, compact size and excellent performance! ✨
 
 ### 🌐 Web Application
 - Online experience: Visit the deployed Web version
-- Requires backend service: `python meowdown-backend/main.py`
+- Requires backend service: `python picgomd-backend/main.py`
 - Suitable for server deployment or local development
 
 ### 👨‍💻 Developer Version
 - Want to run from source? See `Read.md/coder-README.md`
 - Desktop development: `cd desktop && npm run tauri dev`
-- Web development: `cd meowdown-web && npm run dev`
+- Web development: `cd picgomd-web && npm run dev`
 
 ---
 
@@ -52,7 +52,7 @@ Convert Markdown images to WebP format and upload to image hosting services with
 5. 💾 **Save Results**: Save the new Markdown file after conversion
 
 ### 🌐 Web Usage
-1. 🚀 Start backend: `python meowdown-backend/main.py`
+1. 🚀 Start backend: `python picgomd-backend/main.py`
 2. 🌐 Open Web interface (usually `http://localhost:8000`)
 3. 📝 Input Markdown content in the left editor
 4. 🎛️ Adjust parameters on the right and click convert

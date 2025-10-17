@@ -1,4 +1,4 @@
-# <img src="meowdown-web/public/maoer.png" width="39" height="39" alt="Meowdown Logo" style="vertical-align: middle;">   Meowdown · MdImgConverter
+# <img src="picgomd-web/public/maoer.png" width="39" height="39" alt="Picgo.MD Logo" style="vertical-align: middle;">   Picgo.MD · MdImgConverter
 
 把 Markdown 里的图片一键变身 WebP，还能自动上传到图床！(=^･ω･^=)✧
 
@@ -12,29 +12,29 @@
 ![Preview](icons/image/previewStory1.jpg)
 
 ## 🤔 这是什么？
-Meowdown 是一个帮你“喂”好 Markdown 里所有图片的小助手。
+Picgo.MD 是一个帮你"喂"好 Markdown 里所有图片的小助手。
 
 它会溜进你的文章里，抓取所有本地图片，把它们变成更小、加载更快的 WebP 格式，然后“咻”地一下上传到你自己的图床，最后再乖乖地把链接给你换回来。
 
 整个过程，你只需要点一下按钮。
 
-## 💡 为什么需要一只 Meowdown？
+## 💡 为什么需要 Picgo.MD？
 
-### 告别图床的“压缩盲盒。”
-> “我的图床也带 WebP 压缩，干嘛要用你？”
+### 告别图床的"压缩盲盒。"
+> "我的图床也带 WebP 压缩，干嘛要用你？"
 
-听起来不错，但效果真的好吗？很多图床的压缩是个“黑盒”，要么压得太狠，图片糊成一片；要么根本没使劲，体积还是那么大。
+听起来不错，但效果真的好吗？很多图床的压缩是个"黑盒"，要么压得太狠，图片糊成一片；要么根本没使劲，体积还是那么大。
 
-Meowdown 把控制权交给你！拖动一下滑杆，就能亲眼看着图片在**画质和体积间找到完美平衡点**。又快又清晰，这才是我们想要的！✨
+Picgo.MD 把控制权交给你！拖动一下滑杆，就能亲眼看着图片在**画质和体积间找到完美平衡点**。又快又清晰，这才是我们想要的！✨
 
-### 从“一键流。”
-> “我用在线工具批量压一下不也一样？”
+### 从"一键流。"
+> "我用在线工具批量压一下不也一样？"
 
 想想你以前是怎么做的：写完文章，把图片一张张拖到压缩工具，再一张张上传到图床，最后再一个个复制链接粘回来……天啊，光是想想就累了！😫
 
-现在，你只需要专注于写作，图片随便拖。写完后，把文章交给 Meowdown，按下那个神奇的按钮，它会帮你**搞定后续所有事**。这才是真正的自动化，不是吗？
+现在，你只需要专注于写作，图片随便拖。写完后，把文章交给 Picgo.MD，按下那个神奇的按钮，它会帮你**搞定后续所有事**。这才是真正的自动化，不是吗？
 
-**简单说：Meowdown 消灭了所有手动处理图片的繁琐步骤，让你专心写出好内容。**
+**简单说：Picgo.MD 消灭了所有手动处理图片的繁琐步骤，让你专心写出好内容。**
 
 
 ---
@@ -58,20 +58,20 @@ Meowdown 把控制权交给你！拖动一下滑杆，就能亲眼看着图片�
 
 ### 🖥️ 桌面版应用（推荐）
 - 前往仓库的 Releases 页面，下载最新的桌面版本：
-  - 📦 **MSI 安装包**：`Meowdown_0.1.0_x64_en-US.msi` - 标准 Windows 安装程序
-  - 🚀 **便携版**：`Meowdown_0.1.0_x64-setup.exe` - 免安装直接运行
+  - 📦 **MSI 安装包**：`Picgo.MD_0.1.0_x64_en-US.msi` - 标准 Windows 安装程序
+  - 🚀 **便携版**：`Picgo.MD_0.1.0_x64-setup.exe` - 免安装直接运行
 - 首次运行若被 SmartScreen 拦截，点击"更多信息"→"仍要运行"
 - 基于 Tauri 构建，体积小巧、性能优秀！✨
 
 ### 🌐 Web 版应用
 - 在线体验：访问部署的 Web 版本
-- 需要配合后端服务：`python meowdown-backend/main.py`
+- 需要配合后端服务：`python picgomd-backend/main.py`
 - 适合服务器部署或本地开发使用
 
 ### 👨‍💻 开发者版本
 - 想用源码运行？见 `Read.md/coder-README.md`
 - 桌面版开发：`cd desktop && npm run tauri dev`
-- Web 版开发：`cd meowdown-web && npm run dev`
+- Web 版开发：`cd picgomd-web && npm run dev`
 
 ---
 
@@ -85,7 +85,7 @@ Meowdown 把控制权交给你！拖动一下滑杆，就能亲眼看着图片�
 5. 💾 **保存结果**：转换完成后保存新的 Markdown 文件
 
 ### 🌐 Web 版使用
-1. 🚀 启动后端：`python meowdown-backend/main.py`
+1. 🚀 启动后端：`python picgomd-backend/main.py`
 2. 🌐 打开 Web 界面（通常是 `http://localhost:8000`）
 3. 📝 在左侧编辑器输入 Markdown 内容
 4. 🎛️ 右侧调节参数并点击转换
