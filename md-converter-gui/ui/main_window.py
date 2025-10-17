@@ -6,15 +6,7 @@
 
 import sys
 
-from PyQt6.QtCore import (
-    QPoint,
-    QRect,
-    QSettings,
-    QSize,
-    Qt,
-    QTimer,
-    pyqtSignal,
-)
+from PyQt6.QtCore import QPoint, QRect, QSettings, QSize, Qt, QTimer, pyqtSignal
 from PyQt6.QtGui import (
     QAction,
     QColor,
