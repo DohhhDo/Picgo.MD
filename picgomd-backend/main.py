@@ -92,9 +92,7 @@ try:
 except Exception as e:
     # 静默处理（仅在调试模式下输出），避免打包运行时产生噪声
     if os.getenv("MD_DEBUG") in ("1", "true", "True"):
-        print(
-            f"Warning: Could not import conversion modules by package name: {e}"
-        )
+        print(f"Warning: Could not import conversion modules by package name: {e}")
     # 回退：使用文件路径动态加载
     import importlib.util as _importlib_util
 
