@@ -1,4 +1,4 @@
-# <img src="picgomd-web/public/maoer.png" width="39" height="39" alt="Picgo.MD Logo" style="vertical-align: middle;">   Picgo.MD · MdImgConverter
+# <img src="picgomd-web/public/maoer.png" width="39" height="39" alt="Picgo.MD Logo" style="vertical-align: middle;">   PicGo.MD · MdImgConverter
 
 把 Markdown 里的图片一键变身 WebP，还能自动上传到图床！(=^･ω･^=)✧
 
